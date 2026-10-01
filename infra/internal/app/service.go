@@ -19,6 +19,7 @@ func newFargateService(
 	albTargetGroupArn pulumi.StringInput,
 	desiredCount pulumi.IntInput,
 	ecrRepoUrl pulumi.StringInput,
+	imageTag pulumi.StringInput,
 	dbEndpoint pulumi.StringInput,
 	dbSecretArn pulumi.StringInput,
 	logGroupName pulumi.StringInput,
@@ -59,7 +60,7 @@ func newFargateService(
 	containerDef := pulumi.Sprintf(`[
 		{
 			"name": "app",
-			"image": "%s:latest",
+			"image": "%s:%s",
 			"essential": true,
 			"portMappings": [
 				{
@@ -97,7 +98,7 @@ func newFargateService(
 				}
 			}
 		}
-	]`, ecrRepoUrl, dbEndpoint, dbSecretArn, logGroupName)
+	]`, ecrRepoUrl, imageTag, dbEndpoint, dbSecretArn, logGroupName)
 
 	taskDef, err := ecs.NewTaskDefinition(ctx, fmt.Sprintf("%s-taskdef", name), &ecs.TaskDefinitionArgs{
 		Family:                  pulumi.Sprintf("%s-%s", name, stack),
