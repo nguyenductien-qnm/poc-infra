@@ -85,7 +85,7 @@ func newFargateService(
 			"secrets": [
 				{
 					"name": "DB_PASSWORD",
-					"valueFrom": "%s"
+					"valueFrom": "%s:password::"
 				}
 			],
 			"logConfiguration": {
