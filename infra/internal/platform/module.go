@@ -16,11 +16,10 @@ type Outputs struct {
 	AlbDnsName         pulumi.StringOutput
 	AlbTargetGroupArn  pulumi.StringOutput
 	AlbSecurityGroupID pulumi.StringOutput
-	EcrRepoUrl         pulumi.StringOutput
 	LogGroupName       pulumi.StringOutput
 }
 
-// New khoi tao toan bo ha tang Platform (ECS Cluster, ECR, CloudWatch Logs, ALB)
+// New khoi tao toan bo ha tang Platform (ECS Cluster, CloudWatch Logs, ALB)
 func New(ctx *pulumi.Context, name string, args *Args) (*Outputs, error) {
 	stack := ctx.Stack()
 	vpcIdPtr := args.VpcID.ToStringOutput().ToStringPtrOutput()
@@ -31,19 +30,13 @@ func New(ctx *pulumi.Context, name string, args *Args) (*Outputs, error) {
 		return nil, err
 	}
 
-	// 2. ECR Repository (ecr.go)
-	ecrRepo, err := newEcrRepo(ctx, name, stack, args.ProtectStateful)
-	if err != nil {
-		return nil, err
-	}
-
-	// 3. CloudWatch Log Group (ecs_cluster.go)
+	// 2. CloudWatch Log Group (ecs_cluster.go)
 	logGroup, err := newCloudWatchLogs(ctx, name, stack)
 	if err != nil {
 		return nil, err
 	}
 
-	// 4. ALB, Target Group, Security Group & Listener (alb.go)
+	// 3. ALB, Target Group, Security Group & Listener (alb.go)
 	albRes, err := newAlb(ctx, name, stack, vpcIdPtr, args.PublicSubnetIDs)
 	if err != nil {
 		return nil, err
@@ -55,7 +48,6 @@ func New(ctx *pulumi.Context, name string, args *Args) (*Outputs, error) {
 		AlbDnsName:         albRes.albDnsName,
 		AlbTargetGroupArn:  albRes.albTargetGroupArn,
 		AlbSecurityGroupID: albRes.albSecurityGroupID,
-		EcrRepoUrl:         ecrRepo.RepositoryUrl,
 		LogGroupName:       logGroup.Name,
 	}, nil
 }

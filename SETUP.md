@@ -51,6 +51,14 @@ aws kms create-alias \
   --region ap-southeast-1
 ```
 
+### Bước 3b: Tạo AWS ECR Repository dùng chung (`poc-app`)
+```bash
+aws ecr create-repository \
+  --repository-name poc-app \
+  --image-scanning-configuration scanOnPush=true \
+  --region ap-southeast-1
+```
+
 ### Bước 4: Đăng nhập Pulumi vào S3 Backend
 ```bash
 pulumi login "s3://pulumi-state-poc-730335441285?region=ap-southeast-1"

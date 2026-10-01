@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -131,13 +132,26 @@ func initDB() error {
 	}
 
 	dbPass := os.Getenv("DB_PASSWORD")
+	if strings.HasPrefix(strings.TrimSpace(dbPass), "{") {
+		var secretObj struct {
+			Password string `json:"password"`
+		}
+		if err := json.Unmarshal([]byte(dbPass), &secretObj); err == nil && secretObj.Password != "" {
+			dbPass = secretObj.Password
+		}
+	}
 	dbName = os.Getenv("DB_NAME")
 	if dbName == "" {
 		dbName = "pocdb"
 	}
 
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable connect_timeout=5",
-		dbHost, dbPort, dbUser, dbPass, dbName)
+	sslMode := os.Getenv("DB_SSLMODE")
+	if sslMode == "" {
+		sslMode = "require"
+	}
+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s connect_timeout=5",
+		dbHost, dbPort, dbUser, dbPass, dbName, sslMode)
 
 	var err error
 	db, err = sql.Open("postgres", dsn)
