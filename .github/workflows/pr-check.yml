@@ -41,20 +41,32 @@ jobs:
 
       - name: "3. Xác định Stack và Role Preview theo nhánh đích"
         id: select-env
+        env:
+          DEV_ROLE: ${{ secrets.AWS_ROLE_DEV_DEPLOY }}
+          STAGING_ROLE: ${{ secrets.AWS_ROLE_STAGING_PREVIEW }}
+          PROD_ROLE: ${{ secrets.AWS_ROLE_PROD_PREVIEW }}
         run: |
           TARGET_BRANCH="${{ github.base_ref }}"
           echo "Target Branch: $TARGET_BRANCH"
 
           if [ "$TARGET_BRANCH" = "main" ]; then
-            echo "stack=prod" >> $GITHUB_OUTPUT
-            echo "role_arn=${{ secrets.AWS_ROLE_PROD_PREVIEW }}" >> $GITHUB_OUTPUT
+            STACK="prod"
+            ROLE_ARN="$PROD_ROLE"
           elif [ "$TARGET_BRANCH" = "staging" ]; then
-            echo "stack=staging" >> $GITHUB_OUTPUT
-            echo "role_arn=${{ secrets.AWS_ROLE_STAGING_PREVIEW }}" >> $GITHUB_OUTPUT
+            STACK="staging"
+            ROLE_ARN="$STAGING_ROLE"
           else
-            echo "stack=dev" >> $GITHUB_OUTPUT
-            echo "role_arn=${{ secrets.AWS_ROLE_DEV_DEPLOY }}" >> $GITHUB_OUTPUT
+            STACK="dev"
+            ROLE_ARN="$DEV_ROLE"
           fi
+
+          if [ -z "$ROLE_ARN" ]; then
+            echo "::error::Khong tim thay secret role preview cho stack $STACK! Vui long kiem tra muc 'Repository secrets' tren GitHub Settings."
+            exit 1
+          fi
+
+          echo "stack=$STACK" >> $GITHUB_OUTPUT
+          echo "role_arn=$ROLE_ARN" >> $GITHUB_OUTPUT
 
       - name: "4. Xác thực AWS qua OIDC (Role Read-Only tương ứng)"
         uses: aws-actions/configure-aws-credentials@v4
