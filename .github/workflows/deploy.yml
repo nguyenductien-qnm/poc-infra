@@ -102,12 +102,15 @@ jobs:
             echo "==> Cập nhật ECS Service để nhận Image mới..."
             CLUSTER_ARN=$(pulumi stack output clusterArn 2>/dev/null || echo "")
             if [ -n "$CLUSTER_ARN" ]; then
-              STACK="${{ steps.select-env.outputs.stack }}"
-              aws ecs update-service \
-                --cluster "$CLUSTER_ARN" \
-                --service "app-svc-${STACK}" \
-                --force-new-deployment \
-                --region "$REGION" || echo "ECS service not ready yet, skip update."
+              SERVICE_NAME=$(aws ecs list-services --cluster "$CLUSTER_ARN" --region "$REGION" --query "serviceArns[0]" --output text | awk -F'/' '{print $NF}')
+              if [ -n "$SERVICE_NAME" ] && [ "$SERVICE_NAME" != "None" ]; then
+                echo "==> Đang kích hoạt force deployment cho ECS Service: $SERVICE_NAME..."
+                aws ecs update-service \
+                  --cluster "$CLUSTER_ARN" \
+                  --service "$SERVICE_NAME" \
+                  --force-new-deployment \
+                  --region "$REGION"
+              fi
             fi
           else
             echo "Chưa có ECR Repo, bỏ qua bước build image."
