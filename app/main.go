@@ -136,8 +136,13 @@ func initDB() error {
 		dbName = "pocdb"
 	}
 
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable connect_timeout=5",
-		dbHost, dbPort, dbUser, dbPass, dbName)
+	sslMode := os.Getenv("DB_SSLMODE")
+	if sslMode == "" {
+		sslMode = "require"
+	}
+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s connect_timeout=5",
+		dbHost, dbPort, dbUser, dbPass, dbName, sslMode)
 
 	var err error
 	db, err = sql.Open("postgres", dsn)
