@@ -1,0 +1,10 @@
+secretsprovider: awskms://alias/pulumi-poc-key?region=ap-southeast-1
+encryptedkey: AQICAHiRyrDYpmoNFuuoBhq8p9/PrgLTjbtfnOud21njngySsgExA8pfn1YvC/o9byIJkqNlAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMeQemgrwx+gnBjVIzAgEQgDtv029RCsU1FJymLDOHl5u4X1bGWcE6JHOdwrP4aKIqbOPTgcF7l1+MF4sEObrKpeJnJ20SqvysYT71NQ==
+config:
+  aws:region: ap-southeast-1
+  infra-poc:vpcCidr: 10.10.0.0/16
+  infra-poc:desiredCount: "1"
+  infra-poc:dbInstanceClass: db.t4g.micro
+  infra-poc:protectStateful: "false"
+  infra-poc:deletionProtection: "false"
+  infra-poc:enableTgw: "false"

@@ -1,0 +1,113 @@
+name: "PR Check & Pulumi Preview"
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - staging
+      - main
+
+permissions:
+  id-token: write     # Bắt buộc để xác thực AWS OIDC
+  contents: read      # Đọc mã nguồn repo
+  pull-requests: write # Tự động gửi comment diff vào PR
+
+jobs:
+  validate-and-preview:
+    name: "Validate Code & Preview Stack"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout Code"
+        uses: actions/checkout@v4
+
+      - name: "Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: "1. Kiểm tra compile mã nguồn App"
+        run: |
+          cd app
+          go mod tidy
+          go build -v -o /dev/null .
+
+      - name: "2. Kiểm tra compile mã nguồn Infra"
+        run: |
+          cd infra
+          go mod tidy
+          go build -v -o /dev/null .
+
+      - name: "3. Xác định Stack và Role Preview theo nhánh đích"
+        id: select-env
+        run: |
+          TARGET_BRANCH="${{ github.base_ref }}"
+          echo "Target Branch: $TARGET_BRANCH"
+
+          if [ "$TARGET_BRANCH" = "main" ]; then
+            echo "stack=prod" >> $GITHUB_OUTPUT
+            echo "role_arn=${{ secrets.AWS_ROLE_PROD_PREVIEW }}" >> $GITHUB_OUTPUT
+          elif [ "$TARGET_BRANCH" = "staging" ]; then
+            echo "stack=staging" >> $GITHUB_OUTPUT
+            echo "role_arn=${{ secrets.AWS_ROLE_STAGING_PREVIEW }}" >> $GITHUB_OUTPUT
+          else
+            echo "stack=dev" >> $GITHUB_OUTPUT
+            echo "role_arn=${{ secrets.AWS_ROLE_DEV_DEPLOY }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: "4. Xác thực AWS qua OIDC (Role Read-Only tương ứng)"
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.select-env.outputs.role_arn }}
+          aws-region: "ap-southeast-1"
+
+      - name: "5. Cài đặt Pulumi CLI"
+        uses: pulumi/actions@v5
+
+      - name: "6. Chạy Pulumi Preview"
+        id: pulumi-preview
+        working-directory: ./infra
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          pulumi login "s3://pulumi-state-poc-${ACCOUNT_ID}?region=ap-southeast-1"
+          pulumi stack select ${{ steps.select-env.outputs.stack }}
+          
+          # Chay preview va ghi log ra file
+          pulumi preview --diff > preview_output.txt 2>&1 || true
+          cat preview_output.txt
+
+      - name: "7. Tự động comment kết quả Preview vào Pull Request"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const previewPath = './infra/preview_output.txt';
+            let previewContent = 'Không tìm thấy log preview.';
+            if (fs.existsSync(previewPath)) {
+              previewContent = fs.readFileSync(previewPath, 'utf8');
+              // Giới hạn 60000 ký tự tránh vượt quá kích thước comment GitHub
+              if (previewContent.length > 60000) {
+                previewContent = previewContent.slice(0, 60000) + '\n... (output quá dài, đã rút gọn)';
+              }
+            }
+            
+            const targetStack = '${{ steps.select-env.outputs.stack }}';
+            const body = `### 🚀 Pulumi Preview Output (\`stack: ${targetStack}\`)
+            
+            <details><summary>Nhấn vào đây để xem chi tiết Diff hạ tầng</summary>
+            
+            \`\`\`
+            ${previewContent}
+            \`\`\`
+            
+            </details>
+            
+            *Commit SHA: \`${context.sha}\` | Được kích hoạt bởi: @${context.actor}*`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });

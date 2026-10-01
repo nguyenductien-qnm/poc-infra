@@ -1,0 +1,29 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Compiled binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+server
+app/server
+
+# Output test / preview logs
+*.log
+*.tmp
+preview_output.txt
+infra/preview_output.txt
+
+# Pulumi local files
+.pulumi/
+
+# CodeGraph local index
+.codegraph/
