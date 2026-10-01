@@ -39,73 +39,312 @@ const htmlTemplate = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pulumi POC Demo Application</title>
+    <title>Pulumi GitOps Cloud Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; background: #f8fafc; color: #1e293b; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-        h1 { margin-top: 0; color: #0f172a; }
-        .badge { display: inline-block; padding: 0.35rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; margin-bottom: 1.5rem; }
-        .badge-success { background: #dcfce7; color: #15803d; }
-        .badge-danger { background: #fee2e2; color: #b91c1c; }
-        .info-card { background: #f1f5f9; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem; line-height: 1.6; }
-        form { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
-        input[type="text"] { flex: 1; padding: 0.75rem 1rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem; }
-        button { background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-        button:hover { background: #2563eb; }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th, td { padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; }
-        th { background: #f8fafc; font-weight: 600; }
-        .time { color: #64748b; font-size: 0.85rem; }
-        .empty { text-align: center; color: #94a3b8; padding: 2rem; }
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --border: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.15);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.15);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #090d16;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2.5rem 1.5rem;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+        .header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .header-title h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a5b4fc 0%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.35rem;
+        }
+        .header-title p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.45rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-pill.success {
+            background: var(--success-bg);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .status-pill.danger {
+            background: var(--danger-bg);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 10px currentColor;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+        .card-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .card-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            word-break: break-all;
+        }
+        .card-value code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.85rem;
+            color: #38bdf8;
+        }
+        .form-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .section-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        form {
+            display: flex;
+            gap: 0.75rem;
+        }
+        @media (max-width: 640px) {
+            form { flex-direction: column; }
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 0.8rem 1rem;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input[type="text"]:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+        button {
+            padding: 0.8rem 1.6rem;
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            white-space: nowrap;
+        }
+        button:hover { opacity: 0.95; }
+        button:active { transform: scale(0.98); }
+        .table-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th, td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(51, 65, 85, 0.4); }
+        .note-id {
+            font-family: ui-monospace, monospace;
+            font-size: 0.85rem;
+            color: #818cf8;
+            font-weight: 600;
+        }
+        .note-content {
+            font-size: 0.95rem;
+        }
+        .note-time {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-muted);
+        }
+        .empty-state p { margin-top: 0.5rem; font-size: 0.9rem; }
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 Pulumi ECS Fargate + RDS Demo</h1>
-        
-        {{if .Connected}}
-            <span class="badge badge-success">✓ Kết nối Database thành công</span>
-        {{else}}
-            <span class="badge badge-danger">✗ Chưa kết nối được Database</span>
-        {{end}}
+        <header class="header">
+            <div class="header-title">
+                <h1>⚡ Cloud Platform Demo</h1>
+                <p>Pulumi Go GitOps • AWS ECS Fargate • RDS PostgreSQL 16 • EFS</p>
+            </div>
+            <div>
+                {{if .Connected}}
+                    <span class="status-pill success"><span class="dot"></span> Database Online</span>
+                {{else}}
+                    <span class="status-pill danger"><span class="dot"></span> Database Offline</span>
+                {{end}}
+            </div>
+        </header>
 
-        <div class="info-card">
-            <strong>Hạ tầng đang chạy:</strong><br>
-            • Compute: <code>AWS ECS Fargate (Container)</code><br>
-            • Database Host: <code>{{.DbHost}}</code><br>
-            • Database Name: <code>{{.DbName}}</code>
-            {{if .ErrorMsg}}<br><strong style="color: #dc2626;">Lỗi:</strong> <code>{{.ErrorMsg}}</code>{{end}}
+        <div class="grid">
+            <div class="card">
+                <div class="card-label">🚀 Compute Engine</div>
+                <div class="card-value">AWS ECS Fargate</div>
+            </div>
+            <div class="card">
+                <div class="card-label">🗄️ Database Host</div>
+                <div class="card-value"><code>{{.DbHost}}</code></div>
+            </div>
+            <div class="card">
+                <div class="card-label">📁 Database Name</div>
+                <div class="card-value"><code>{{.DbName}}</code></div>
+            </div>
+            <div class="card">
+                <div class="card-label">📝 Total Records</div>
+                <div class="card-value">{{len .Notes}} bản ghi</div>
+            </div>
         </div>
 
-        <h3>Thêm dữ liệu thử nghiệm vào RDS</h3>
-        <form method="POST" action="/notes">
-            <input type="text" name="content" placeholder="Nhập nội dung ghi chú (vd: Thử nghiệm insert dữ liệu từ Fargate)..." required autofocus>
-            <button type="submit">Lưu vào DB</button>
-        </form>
-
-        <h3>Danh sách bản ghi từ PostgreSQL:</h3>
-        {{if .Notes}}
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 60px;">ID</th>
-                        <th>Nội dung</th>
-                        <th style="width: 200px;">Thời gian tạo (UTC)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{range .Notes}}
-                    <tr>
-                        <td><strong>#{{.ID}}</strong></td>
-                        <td>{{.Content}}</td>
-                        <td class="time">{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
-                    </tr>
-                    {{end}}
-                </tbody>
-            </table>
-        {{else}}
-            <div class="empty">Chưa có bản ghi nào trong Database. Hãy nhập ghi chú đầu tiên ở trên!</div>
+        {{if .ErrorMsg}}
+        <div class="form-section" style="border-color: rgba(239, 68, 68, 0.4); background: var(--danger-bg);">
+            <div class="section-header" style="color: #f87171;">⚠️ Lỗi kết nối Database</div>
+            <p style="font-family: monospace; font-size: 0.85rem; color: #fca5a5;">{{.ErrorMsg}}</p>
+        </div>
         {{end}}
+
+        <section class="form-section">
+            <div class="section-header">➕ Tạo ghi chú mới vào RDS PostgreSQL</div>
+            <form method="POST" action="/notes">
+                <input type="text" name="content" placeholder="Nhập nội dung dữ liệu kiểm tra (vd: Deploy GitOps thành công!)..." required autofocus>
+                <button type="submit">Ghi vào DB</button>
+            </form>
+        </section>
+
+        <section class="table-container">
+            {{if .Notes}}
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">ID</th>
+                            <th>Nội dung ghi chú</th>
+                            <th style="width: 180px;">Thời gian tạo (UTC)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Notes}}
+                        <tr>
+                            <td class="note-id">#{{.ID}}</td>
+                            <td class="note-content">{{.Content}}</td>
+                            <td class="note-time">{{.CreatedAt.Format "2006-01-02 15:04:05"}}</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            {{else}}
+                <div class="empty-state">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto; display: block; opacity: 0.5;">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <p>Chưa có bản ghi nào trong Database. Hãy nhập nội dung ở trên để test INSERT!</p>
+                </div>
+            {{end}}
+        </section>
+
+        <footer class="footer">
+            Pulumi IaC • GitOps Pipeline (OIDC + S3 Backend + KMS) • AWS ap-southeast-1
+        </footer>
     </div>
 </body>
 </html>`
