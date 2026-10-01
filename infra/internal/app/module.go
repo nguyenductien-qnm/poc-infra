@@ -5,6 +5,7 @@ import (
 )
 
 type Args struct {
+	EcrRepoUrl         pulumi.StringInput
 	VpcID              pulumi.IDInput
 	SubnetIDs          pulumi.StringArrayInput
 	ClusterArn         pulumi.StringInput
@@ -38,7 +39,7 @@ func New(ctx *pulumi.Context, name string, args *Args) (*Outputs, error) {
 		vpcIdPtr, args.AlbSecurityGroupID,
 		args.SubnetIDs, args.ClusterArn,
 		args.AlbTargetGroupArn, args.DesiredCount,
-		args.DbEndpoint, args.DbSecretArn,
+		args.EcrRepoUrl, args.DbEndpoint, args.DbSecretArn,
 		args.LogGroupName, iamRes,
 	)
 	if err != nil {

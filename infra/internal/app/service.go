@@ -18,6 +18,7 @@ func newFargateService(
 	clusterArn pulumi.StringInput,
 	albTargetGroupArn pulumi.StringInput,
 	desiredCount pulumi.IntInput,
+	ecrRepoUrl pulumi.StringInput,
 	dbEndpoint pulumi.StringInput,
 	dbSecretArn pulumi.StringInput,
 	logGroupName pulumi.StringInput,
@@ -57,8 +58,8 @@ func newFargateService(
 	// 2. ECS Task Definition (Fargate 0.25 vCPU, 512 MB RAM)
 	containerDef := pulumi.Sprintf(`[
 		{
-			"name": "nginx",
-			"image": "public.ecr.aws/nginx/nginx:alpine",
+			"name": "app",
+			"image": "%s:latest",
 			"essential": true,
 			"portMappings": [
 				{
@@ -96,7 +97,7 @@ func newFargateService(
 				}
 			}
 		}
-	]`, dbEndpoint, dbSecretArn, logGroupName)
+	]`, ecrRepoUrl, dbEndpoint, dbSecretArn, logGroupName)
 
 	taskDef, err := ecs.NewTaskDefinition(ctx, fmt.Sprintf("%s-taskdef", name), &ecs.TaskDefinitionArgs{
 		Family:                  pulumi.Sprintf("%s-%s", name, stack),
@@ -130,7 +131,7 @@ func newFargateService(
 		LoadBalancers: ecs.ServiceLoadBalancerArray{
 			&ecs.ServiceLoadBalancerArgs{
 				TargetGroupArn: albTargetGroupArn,
-				ContainerName:  pulumi.String("nginx"),
+				ContainerName:  pulumi.String("app"),
 				ContainerPort:  pulumi.Int(80),
 			},
 		},

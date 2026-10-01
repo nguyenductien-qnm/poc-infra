@@ -57,6 +57,7 @@ func main() {
 
 		// 5. App Package
 		appOut, err := app.New(ctx, "app", &app.Args{
+			EcrRepoUrl:         platOut.EcrRepoUrl,
 			VpcID:              netOut.VpcID,
 			SubnetIDs:          netOut.PublicSubnetIDs,
 			ClusterArn:         platOut.ClusterArn,
