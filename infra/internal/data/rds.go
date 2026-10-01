@@ -74,7 +74,7 @@ func newRds(
 		AllocatedStorage:         pulumi.Int(20),
 		StorageType:              pulumi.String("gp3"),
 		Engine:                   pulumi.String("postgres"),
-		EngineVersion:            pulumi.String("16.3"),
+		EngineVersion:            pulumi.String("16.11"),
 		InstanceClass:            dbInstanceClass,
 		DbName:                   pulumi.String("pocdb"),
 		Username:                 pulumi.String("dbadmin"),

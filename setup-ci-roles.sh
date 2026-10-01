@@ -137,7 +137,7 @@ rm -f /tmp/preview-policy.json
 echo "--------------------------------------------------"
 create_or_update_role \
     "poc-dev-deploy-role" \
-    "[\"repo:${GITHUB_ORG_OR_USER}/${GITHUB_REPO_NAME}:ref:refs/heads/dev\", \"repo:${GITHUB_ORG_OR_USER}/${GITHUB_REPO_NAME}:pull_request\"]" \
+    "[\"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:ref:refs/heads/dev\", \"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:pull_request*\"]" \
     "CI Deploy role cho moi truong dev"
 aws iam attach-role-policy --role-name "poc-dev-deploy-role" --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess"
 
@@ -145,7 +145,7 @@ aws iam attach-role-policy --role-name "poc-dev-deploy-role" --policy-arn "arn:a
 echo "--------------------------------------------------"
 create_or_update_role \
     "poc-staging-preview-role" \
-    "[\"repo:${GITHUB_ORG_OR_USER}/${GITHUB_REPO_NAME}:pull_request\", \"repo:${GITHUB_ORG_OR_USER}/${GITHUB_REPO_NAME}:ref:refs/heads/dev\"]" \
+    "[\"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:pull_request*\", \"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:ref:refs/heads/dev\"]" \
     "CI Preview role cho Staging (Read-Only)"
 aws iam attach-role-policy --role-name "poc-staging-preview-role" --policy-arn "arn:aws:iam::aws:policy/ReadOnlyAccess"
 aws iam attach-role-policy --role-name "poc-staging-preview-role" --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/${PREVIEW_POLICY_NAME}"
@@ -154,7 +154,7 @@ aws iam attach-role-policy --role-name "poc-staging-preview-role" --policy-arn "
 echo "--------------------------------------------------"
 create_or_update_role \
     "poc-staging-deploy-role" \
-    "[\"repo:${GITHUB_ORG_OR_USER}/${GITHUB_REPO_NAME}:ref:refs/heads/staging\"]" \
+    "[\"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:ref:refs/heads/staging\"]" \
     "CI Deploy role cho moi truong Staging"
 aws iam attach-role-policy --role-name "poc-staging-deploy-role" --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess"
 
@@ -162,7 +162,7 @@ aws iam attach-role-policy --role-name "poc-staging-deploy-role" --policy-arn "a
 echo "--------------------------------------------------"
 create_or_update_role \
     "poc-prod-preview-role" \
-    "[\"repo:${GITHUB_ORG_OR_USER}/${GITHUB_REPO_NAME}:pull_request\", \"repo:${GITHUB_ORG_OR_USER}/${GITHUB_REPO_NAME}:ref:refs/heads/staging\"]" \
+    "[\"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:pull_request*\", \"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:ref:refs/heads/staging\"]" \
     "CI Preview role cho Production (Read-Only)"
 aws iam attach-role-policy --role-name "poc-prod-preview-role" --policy-arn "arn:aws:iam::aws:policy/ReadOnlyAccess"
 aws iam attach-role-policy --role-name "poc-prod-preview-role" --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/${PREVIEW_POLICY_NAME}"
@@ -171,7 +171,7 @@ aws iam attach-role-policy --role-name "poc-prod-preview-role" --policy-arn "arn
 echo "--------------------------------------------------"
 create_or_update_role \
     "poc-prod-deploy-role" \
-    "[\"repo:${GITHUB_ORG_OR_USER}/${GITHUB_REPO_NAME}:ref:refs/heads/main\"]" \
+    "[\"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:ref:refs/heads/main\"]" \
     "CI Deploy role cho moi truong Production"
 aws iam attach-role-policy --role-name "poc-prod-deploy-role" --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess"
 
