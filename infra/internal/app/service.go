@@ -2,145 +2,118 @@ package app
 
 import (
 	"fmt"
+	"strconv"
 
-	"github.com/pulumi/pulumi-aws/sdk/v7/go/aws/ec2"
 	"github.com/pulumi/pulumi-aws/sdk/v7/go/aws/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
+	"infra-poc/internal/shared"
 )
 
-// newFargateService khoi tao App Security Group, Task Definition va ECS Service
-func newFargateService(
-	ctx *pulumi.Context,
-	name, stack string,
-	vpcIdPtr pulumi.StringPtrInput,
-	albSecurityGroupID pulumi.StringInput,
-	subnetIDs pulumi.StringArrayInput,
-	clusterArn pulumi.StringInput,
-	albTargetGroupArn pulumi.StringInput,
-	desiredCount pulumi.IntInput,
-	ecrRepoUrl pulumi.StringInput,
-	imageTag pulumi.StringInput,
-	dbEndpoint pulumi.StringInput,
-	dbSecretArn pulumi.StringInput,
-	logGroupName pulumi.StringInput,
-	iamRes *appIamResult,
-) error {
+const containerName = "app"
 
-	// 1. Security Group cho App (Chi cho phep traffic HTTP port 80 tu ALB)
-	appSg, err := ec2.NewSecurityGroup(ctx, fmt.Sprintf("%s-sg", name), &ec2.SecurityGroupArgs{
-		VpcId:       vpcIdPtr,
-		Description: pulumi.String("Allow HTTP from ALB and all egress"),
-		Ingress: ec2.SecurityGroupIngressArray{
-			&ec2.SecurityGroupIngressArgs{
-				Protocol:       pulumi.String("tcp"),
-				FromPort:       pulumi.Int(80),
-				ToPort:         pulumi.Int(80),
-				SecurityGroups: pulumi.StringArray{albSecurityGroupID},
-				Description:    pulumi.String("HTTP from ALB SG"),
-			},
-		},
-		Egress: ec2.SecurityGroupEgressArray{
-			&ec2.SecurityGroupEgressArgs{
-				Protocol:   pulumi.String("-1"),
-				FromPort:   pulumi.Int(0),
-				ToPort:     pulumi.Int(0),
-				CidrBlocks: pulumi.StringArray{pulumi.String("0.0.0.0/0")},
-			},
-		},
-		Tags: pulumi.StringMap{
-			"Name":  pulumi.Sprintf("%s-sg-%s", name, stack),
-			"Stack": pulumi.String(stack),
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("creating app security group: %w", err)
-	}
+// Cac struct mo ta JSON container definition cua ECS (chi cac field dang dung)
+type containerDefinition struct {
+	Name             string           `json:"name"`
+	Image            string           `json:"image"`
+	Essential        bool             `json:"essential"`
+	PortMappings     []portMapping    `json:"portMappings"`
+	Environment      []keyValue       `json:"environment"`
+	Secrets          []secretRef      `json:"secrets"`
+	LogConfiguration logConfiguration `json:"logConfiguration"`
+}
 
-	// 2. ECS Task Definition (Fargate 0.25 vCPU, 512 MB RAM)
-	containerDef := pulumi.Sprintf(`[
-		{
-			"name": "app",
-			"image": "%s:%s",
-			"essential": true,
-			"portMappings": [
-				{
-					"containerPort": 80,
-					"hostPort": 80,
-					"protocol": "tcp"
-				}
-			],
-			"environment": [
-				{
-					"name": "DB_ENDPOINT",
-					"value": "%s"
+type portMapping struct {
+	ContainerPort int    `json:"containerPort"`
+	HostPort      int    `json:"hostPort"`
+	Protocol      string `json:"protocol"`
+}
+
+type keyValue struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type secretRef struct {
+	Name      string `json:"name"`
+	ValueFrom string `json:"valueFrom"`
+}
+
+type logConfiguration struct {
+	LogDriver string            `json:"logDriver"`
+	Options   map[string]string `json:"options"`
+}
+
+// newFargateService khoi tao Task Definition va ECS Service (App SG tao o package platform)
+func newFargateService(ctx *pulumi.Context, name, stack string, args *Args, iamRes *appIamResult, opt pulumi.ResourceOption) error {
+	// 1. ECS Task Definition (Fargate 0.25 vCPU, 512 MB RAM)
+	containerDefs := pulumi.All(args.EcrRepoUrl, args.ImageTag, args.DbEndpoint, args.DbSecretArn, args.LogGroupName).
+		ApplyT(func(v []any) string {
+			repoUrl, imageTag, dbEndpoint, dbSecretArn, logGroup := v[0].(string), v[1].(string), v[2].(string), v[3].(string), v[4].(string)
+			return mustJSON([]containerDefinition{{
+				Name:      containerName,
+				Image:     repoUrl + ":" + imageTag,
+				Essential: true,
+				PortMappings: []portMapping{
+					{ContainerPort: shared.AppPort, HostPort: shared.AppPort, Protocol: "tcp"},
 				},
-				{
-					"name": "DB_NAME",
-					"value": "pocdb"
+				Environment: []keyValue{
+					{Name: "DB_ENDPOINT", Value: dbEndpoint},
+					{Name: "DB_PORT", Value: strconv.Itoa(shared.DbPort)},
+					{Name: "DB_NAME", Value: shared.DbName},
+					{Name: "DB_USER", Value: shared.DbUser},
+					{Name: "PORT", Value: strconv.Itoa(shared.AppPort)},
 				},
-				{
-					"name": "DB_USER",
-					"value": "dbadmin"
-				}
-			],
-			"secrets": [
-				{
-					"name": "DB_PASSWORD",
-					"valueFrom": "%s:password::"
-				}
-			],
-			"logConfiguration": {
-				"logDriver": "awslogs",
-				"options": {
-					"awslogs-group": "%s",
-					"awslogs-region": "ap-southeast-1",
-					"awslogs-stream-prefix": "app"
-				}
-			}
-		}
-	]`, ecrRepoUrl, imageTag, dbEndpoint, dbSecretArn, logGroupName)
+				Secrets: []secretRef{
+					// Secret RDS dang JSON {"username","password"}, chi lay key password
+					{Name: "DB_PASSWORD", ValueFrom: dbSecretArn + ":password::"},
+				},
+				LogConfiguration: logConfiguration{
+					LogDriver: "awslogs",
+					Options: map[string]string{
+						"awslogs-group":         logGroup,
+						"awslogs-region":        args.Region,
+						"awslogs-stream-prefix": containerName,
+					},
+				},
+			}})
+		}).(pulumi.StringOutput)
 
 	taskDef, err := ecs.NewTaskDefinition(ctx, fmt.Sprintf("%s-taskdef", name), &ecs.TaskDefinitionArgs{
-		Family:                  pulumi.Sprintf("%s-%s", name, stack),
+		Family:                  pulumi.String(name + "-" + stack),
 		RequiresCompatibilities: pulumi.StringArray{pulumi.String("FARGATE")},
 		NetworkMode:             pulumi.String("awsvpc"),
 		Cpu:                     pulumi.String("256"),
 		Memory:                  pulumi.String("512"),
 		ExecutionRoleArn:        iamRes.execRole.Arn,
 		TaskRoleArn:             iamRes.taskRole.Arn,
-		ContainerDefinitions:    containerDef,
-		Tags: pulumi.StringMap{
-			"Name":  pulumi.Sprintf("%s-taskdef-%s", name, stack),
-			"Stack": pulumi.String(stack),
-		},
-	})
+		ContainerDefinitions:    containerDefs,
+		Tags:                    shared.Tags(fmt.Sprintf("%s-taskdef", name), stack),
+	}, opt)
 	if err != nil {
 		return fmt.Errorf("creating task definition: %w", err)
 	}
 
-	// 3. ECS Service Fargate (chay tren public subnets, gan vao ALB Target Group)
+	// 2. ECS Service Fargate (chay tren public subnets, gan vao ALB Target Group)
 	_, err = ecs.NewService(ctx, fmt.Sprintf("%s-service", name), &ecs.ServiceArgs{
-		Cluster:        clusterArn,
+		Cluster:        args.ClusterArn,
 		TaskDefinition: taskDef.Arn,
 		LaunchType:     pulumi.String("FARGATE"),
-		DesiredCount:   desiredCount,
+		DesiredCount:   args.DesiredCount,
 		NetworkConfiguration: &ecs.ServiceNetworkConfigurationArgs{
-			Subnets:        subnetIDs,
-			SecurityGroups: pulumi.StringArray{appSg.ID()},
+			Subnets:        args.SubnetIDs,
+			SecurityGroups: pulumi.StringArray{args.AppSecurityGroupID},
 			AssignPublicIp: pulumi.Bool(true),
 		},
 		LoadBalancers: ecs.ServiceLoadBalancerArray{
 			&ecs.ServiceLoadBalancerArgs{
-				TargetGroupArn: albTargetGroupArn,
-				ContainerName:  pulumi.String("app"),
-				ContainerPort:  pulumi.Int(80),
+				TargetGroupArn: args.AlbTargetGroupArn,
+				ContainerName:  pulumi.String(containerName),
+				ContainerPort:  pulumi.Int(shared.AppPort),
 			},
 		},
-		Tags: pulumi.StringMap{
-			"Name":  pulumi.Sprintf("%s-svc-%s", name, stack),
-			"Stack": pulumi.String(stack),
-		},
-	})
+		Tags: shared.Tags(fmt.Sprintf("%s-svc", name), stack),
+	}, opt)
 	if err != nil {
 		return fmt.Errorf("creating ecs service: %w", err)
 	}

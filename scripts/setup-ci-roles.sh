@@ -2,11 +2,20 @@
 set -euo pipefail
 
 # ==============================================================================
-# SCRIPT KHỞI TẠO 5 IAM ROLES CHO CI/CD (PHÂN TÁCH PREVIEW & DEPLOY THEO PROPOSAL)
+# SCRIPT KHỞI TẠO 6 IAM ROLES CHO CI/CD (PHÂN TÁCH PREVIEW & DEPLOY THEO PROPOSAL)
 # ==============================================================================
 
 GITHUB_ORG_OR_USER="${1:-nguyenductien-qnm}"   # Tham so 1: Username hoac Organization GitHub
 GITHUB_REPO_NAME="${2:-poc-infra}"           # Tham so 2: Ten Repository GitHub
+
+# Repo tao sau 15/07/2026 dung OIDC sub dang immutable: repo:<owner>@<owner_id>/<repo>@<repo_id>:...
+# Lay ID qua GitHub API (repo public); repo private thi truyen san GITHUB_OWNER_ID / GITHUB_REPO_ID
+if [ -z "${GITHUB_OWNER_ID:-}" ] || [ -z "${GITHUB_REPO_ID:-}" ]; then
+    REPO_JSON=$(curl -fsSL "https://api.github.com/repos/${GITHUB_ORG_OR_USER}/${GITHUB_REPO_NAME}")
+    GITHUB_OWNER_ID=$(echo "$REPO_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["owner"]["id"])')
+    GITHUB_REPO_ID=$(echo "$REPO_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+fi
+SUB_PREFIX="repo:${GITHUB_ORG_OR_USER}@${GITHUB_OWNER_ID}/${GITHUB_REPO_NAME}@${GITHUB_REPO_ID}"
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 REGION="ap-southeast-1"
@@ -17,6 +26,7 @@ OIDC_ARN="arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubuserconte
 echo "=================================================="
 echo "AWS Account ID:     $ACCOUNT_ID"
 echo "Target Repo:        $GITHUB_ORG_OR_USER/$GITHUB_REPO_NAME"
+echo "OIDC sub prefix:    $SUB_PREFIX"
 echo "S3 State Bucket:    $S3_STATE_BUCKET"
 echo "KMS Alias:          $KMS_KEY_ALIAS"
 echo "=================================================="
@@ -59,9 +69,7 @@ create_or_update_role() {
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
-        },
-        "StringLike": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
           "token.actions.githubusercontent.com:sub": ${sub_conditions}
         }
       }
@@ -130,56 +138,70 @@ fi
 rm -f /tmp/preview-policy.json
 
 # ------------------------------------------------------------------------------
-# BƯỚC 3: KHỞI TẠO 5 ROLES THEO ĐÚNG PROPOSAL
+# BƯỚC 3: KHỞI TẠO 6 ROLES THEO ĐÚNG PROPOSAL
 # ------------------------------------------------------------------------------
+# Job deploy chạy trong GitHub Environment (dev/staging/prod) nên sub có dạng
+# <prefix>:environment:<env> thay vì :ref:refs/heads/<branch>.
+# Role deploy chỉ tin tưởng environment tương ứng.
+# Role preview (read-only) tin tưởng PR và push vào đúng nhánh của nó (job preview trước khi deploy).
 
-# 1. Dev Deploy Role (Tin tưởng branch dev và PR)
+# 1. Dev Deploy Role (Chỉ tin tưởng environment dev)
 echo "--------------------------------------------------"
 create_or_update_role \
     "poc-dev-deploy-role" \
-    "[\"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:ref:refs/heads/dev\", \"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:pull_request*\"]" \
+    "[\"${SUB_PREFIX}:environment:dev\"]" \
     "CI Deploy role cho moi truong dev"
 aws iam attach-role-policy --role-name "poc-dev-deploy-role" --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess"
 
-# 2. Staging Preview Role (Read-only, tin tưởng PR vào staging)
+# 1b. Dev Preview Role (Read-only, tin tưởng PR và push vào dev)
+echo "--------------------------------------------------"
+create_or_update_role \
+    "poc-dev-preview-role" \
+    "[\"${SUB_PREFIX}:pull_request\", \"${SUB_PREFIX}:ref:refs/heads/dev\"]" \
+    "CI Preview role cho Dev (Read-Only)"
+aws iam attach-role-policy --role-name "poc-dev-preview-role" --policy-arn "arn:aws:iam::aws:policy/ReadOnlyAccess"
+aws iam attach-role-policy --role-name "poc-dev-preview-role" --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/${PREVIEW_POLICY_NAME}"
+
+# 2. Staging Preview Role (Read-only, tin tưởng PR và push vào staging)
 echo "--------------------------------------------------"
 create_or_update_role \
     "poc-staging-preview-role" \
-    "[\"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:pull_request*\", \"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:ref:refs/heads/dev\"]" \
+    "[\"${SUB_PREFIX}:pull_request\", \"${SUB_PREFIX}:ref:refs/heads/staging\"]" \
     "CI Preview role cho Staging (Read-Only)"
 aws iam attach-role-policy --role-name "poc-staging-preview-role" --policy-arn "arn:aws:iam::aws:policy/ReadOnlyAccess"
 aws iam attach-role-policy --role-name "poc-staging-preview-role" --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/${PREVIEW_POLICY_NAME}"
 
-# 3. Staging Deploy Role (Chỉ tin tưởng branch staging khi đã merge)
+# 3. Staging Deploy Role (Chỉ tin tưởng environment staging)
 echo "--------------------------------------------------"
 create_or_update_role \
     "poc-staging-deploy-role" \
-    "[\"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:ref:refs/heads/staging\"]" \
+    "[\"${SUB_PREFIX}:environment:staging\"]" \
     "CI Deploy role cho moi truong Staging"
 aws iam attach-role-policy --role-name "poc-staging-deploy-role" --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess"
 
-# 4. Prod Preview Role (Read-only, tin tưởng PR vào main)
+# 4. Prod Preview Role (Read-only, tin tưởng PR và push vào main)
 echo "--------------------------------------------------"
 create_or_update_role \
     "poc-prod-preview-role" \
-    "[\"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:pull_request*\", \"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:ref:refs/heads/staging\"]" \
+    "[\"${SUB_PREFIX}:pull_request\", \"${SUB_PREFIX}:ref:refs/heads/main\"]" \
     "CI Preview role cho Production (Read-Only)"
 aws iam attach-role-policy --role-name "poc-prod-preview-role" --policy-arn "arn:aws:iam::aws:policy/ReadOnlyAccess"
 aws iam attach-role-policy --role-name "poc-prod-preview-role" --policy-arn "arn:aws:iam::${ACCOUNT_ID}:policy/${PREVIEW_POLICY_NAME}"
 
-# 5. Prod Deploy Role (Chỉ tin tưởng branch main)
+# 5. Prod Deploy Role (Chỉ tin tưởng environment prod, có approval)
 echo "--------------------------------------------------"
 create_or_update_role \
     "poc-prod-deploy-role" \
-    "[\"repo:${GITHUB_ORG_OR_USER}*/${GITHUB_REPO_NAME}*:ref:refs/heads/main\"]" \
+    "[\"${SUB_PREFIX}:environment:prod\"]" \
     "CI Deploy role cho moi truong Production"
 aws iam attach-role-policy --role-name "poc-prod-deploy-role" --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess"
 
 echo "=================================================="
-echo " HOÀN TẤT THÀNH CÔNG 5 ROLES!"
+echo " HOÀN TẤT THÀNH CÔNG 6 ROLES!"
 echo " Danh sách Secret cần cấu hình trên GitHub Repo:"
 echo "--------------------------------------------------"
 echo " AWS_ROLE_DEV_DEPLOY:      arn:aws:iam::${ACCOUNT_ID}:role/poc-dev-deploy-role"
+echo " AWS_ROLE_DEV_PREVIEW:     arn:aws:iam::${ACCOUNT_ID}:role/poc-dev-preview-role"
 echo " AWS_ROLE_STAGING_PREVIEW: arn:aws:iam::${ACCOUNT_ID}:role/poc-staging-preview-role"
 echo " AWS_ROLE_STAGING_DEPLOY:  arn:aws:iam::${ACCOUNT_ID}:role/poc-staging-deploy-role"
 echo " AWS_ROLE_PROD_PREVIEW:    arn:aws:iam::${ACCOUNT_ID}:role/poc-prod-preview-role"

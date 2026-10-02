@@ -6,6 +6,9 @@ on:
       - dev
       - staging
       - main
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
 
 # Đảm bảo chỉ 1 lần deploy chạy trên mỗi stack tại một thời điểm (chống xung đột State)
 concurrency:
@@ -16,9 +19,20 @@ permissions:
   id-token: write  # Xác thực AWS OIDC
   contents: read   # Đọc mã nguồn
 
+env:
+  AWS_REGION: "ap-southeast-1"
+  # Nhánh -> stack: main -> prod, staging -> staging, dev -> dev
+  STACK: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+  # Commit SHA, dùng 7 ký tự đầu (${IMAGE_TAG::7}) làm image tag ở cả 2 job
+  IMAGE_TAG: ${{ github.sha }}
+
 jobs:
-  deploy:
-    name: "Deploy Environment"
+  # ----------------------------------------------------------------------------
+  # Job 1: Preview bằng role read-only, in diff ra Job Summary.
+  # Người duyệt xem diff ở đây TRƯỚC khi approve job deploy.
+  # ----------------------------------------------------------------------------
+  preview:
+    name: "Preview (${{ github.ref_name == 'main' && 'prod' || github.ref_name }})"
     runs-on: ubuntu-latest
 
     steps:
@@ -28,88 +42,94 @@ jobs:
       - name: "Setup Go"
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
-          cache: true
+          go-version-file: infra/go.mod
+          cache-dependency-path: infra/go.sum
+
+      - name: "1. Xác thực AWS qua OIDC (Role Preview read-only)"
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ github.ref_name == 'main' && secrets.AWS_ROLE_PROD_PREVIEW || github.ref_name == 'staging' && secrets.AWS_ROLE_STAGING_PREVIEW || secrets.AWS_ROLE_DEV_PREVIEW }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: "2. Cài đặt Pulumi CLI"
+        uses: pulumi/actions@v5
+
+      - name: "3. Pulumi Preview với image tag mới"
+        working-directory: ./infra
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          pulumi login "s3://pulumi-state-poc-${ACCOUNT_ID}?region=${AWS_REGION}"
+          pulumi stack select "$STACK"
+          pulumi config set imageTag "${IMAGE_TAG::7}"
+
+          set +e
+          pulumi preview --diff > preview_output.txt 2>&1
+          EXIT_CODE=$?
+          set -e
+          cat preview_output.txt
+
+          {
+            echo "### Pulumi Preview (\`stack: $STACK\`, image \`${IMAGE_TAG::7}\`)"
+            echo '```'
+            # Job Summary giới hạn 1MB, cắt bớt cho chắc
+            head -c 60000 preview_output.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit $EXIT_CODE
+
+  # ----------------------------------------------------------------------------
+  # Job 2: Deploy trong GitHub Environment (staging/prod có Required reviewers).
+  # OIDC sub = <repo>:environment:<env>, trust policy trong scripts/setup-ci-roles.sh đã khớp.
+  # ----------------------------------------------------------------------------
+  deploy:
+    name: "Deploy (${{ github.ref_name == 'main' && 'prod' || github.ref_name }})"
+    needs: preview
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+
+    steps:
+      - name: "Checkout Code"
+        uses: actions/checkout@v4
+
+      - name: "Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: infra/go.mod
+          cache-dependency-path: infra/go.sum
 
       - name: "Setup Docker Buildx (Hỗ trợ build container Linux AMD64)"
         uses: docker/setup-buildx-action@v3
 
-      - name: "1. Xác định Stack và Role Deploy theo Branch"
-        id: select-env
-        env:
-          DEV_ROLE: ${{ secrets.AWS_ROLE_DEV_DEPLOY }}
-          STAGING_ROLE: ${{ secrets.AWS_ROLE_STAGING_DEPLOY }}
-          PROD_ROLE: ${{ secrets.AWS_ROLE_PROD_DEPLOY }}
-        run: |
-          BRANCH="${GITHUB_REF#refs/heads/}"
-          echo "Active Branch: $BRANCH"
-
-          if [ "$BRANCH" = "main" ]; then
-            STACK="prod"
-            ROLE_ARN="$PROD_ROLE"
-          elif [ "$BRANCH" = "staging" ]; then
-            STACK="staging"
-            ROLE_ARN="$STAGING_ROLE"
-          else
-            STACK="dev"
-            ROLE_ARN="$DEV_ROLE"
-          fi
-
-          if [ -z "$ROLE_ARN" ]; then
-            echo "::error::Khong tim thay secret role cho stack $STACK! Vui long kiem tra muc 'Repository secrets' tren GitHub Settings."
-            exit 1
-          fi
-
-          echo "stack=$STACK" >> $GITHUB_OUTPUT
-          echo "role_arn=$ROLE_ARN" >> $GITHUB_OUTPUT
-
-      - name: "2. Xác thực AWS qua OIDC (Deploy Role tương ứng)"
+      - name: "1. Xác thực AWS qua OIDC (Role Deploy)"
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ steps.select-env.outputs.role_arn }}
-          aws-region: "ap-southeast-1"
+          role-to-assume: ${{ github.ref_name == 'main' && secrets.AWS_ROLE_PROD_DEPLOY || github.ref_name == 'staging' && secrets.AWS_ROLE_STAGING_DEPLOY || secrets.AWS_ROLE_DEV_DEPLOY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: "3. Cài đặt Pulumi CLI"
+      - name: "2. Cài đặt Pulumi CLI"
         uses: pulumi/actions@v5
 
-      - name: "4. Build & Push Docker Image lên Shared ECR (Tag SHA)"
+      - name: "3. Build & Push Docker Image lên Shared ECR (chỉ tag SHA)"
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          REGION="ap-southeast-1"
-          ECR_URL="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/poc-app"
-          IMAGE_TAG="${GITHUB_SHA::7}"
+          ECR_URL="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/poc-app"
 
-          echo "==> Đang đăng nhập Docker vào Shared ECR: $ECR_URL..."
-          aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ECR_URL"
+          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_URL"
+          docker build --platform linux/amd64 -t "$ECR_URL:${IMAGE_TAG::7}" ./app
+          docker push "$ECR_URL:${IMAGE_TAG::7}"
 
-          echo "==> Đang build Docker Image từ thư mục app/ với tag: $IMAGE_TAG..."
-          docker build --platform linux/amd64 \
-            -t "$ECR_URL:$IMAGE_TAG" \
-            -t "$ECR_URL:latest" \
-            ./app
-
-          echo "==> Đang đẩy Docker Image lên ECR..."
-          docker push "$ECR_URL:$IMAGE_TAG"
-          docker push "$ECR_URL:latest"
-
-      - name: "5. Deploy Hạ tầng AWS qua Pulumi Up"
-        id: pulumi-up
+      - name: "4. Deploy Hạ tầng AWS qua Pulumi Up"
         working-directory: ./infra
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          IMAGE_TAG="${GITHUB_SHA::7}"
+          pulumi login "s3://pulumi-state-poc-${ACCOUNT_ID}?region=${AWS_REGION}"
+          pulumi stack select "$STACK"
+          pulumi config set imageTag "${IMAGE_TAG::7}"
+          pulumi up --yes --diff
 
-          pulumi login "s3://pulumi-state-poc-${ACCOUNT_ID}?region=ap-southeast-1"
-          pulumi stack select ${{ steps.select-env.outputs.stack }}
-          
-          # Cập nhật imageTag vào stack config và deploy hạ tầng
-          pulumi config set imageTag "$IMAGE_TAG"
-          pulumi up --yes --skip-preview
-
-      - name: "6. Xuất thông tin sau khi Deploy hoàn tất"
+      - name: "5. Xuất thông tin sau khi Deploy hoàn tất"
         working-directory: ./infra
         run: |
-          echo "=================================================="
-          echo " DEPLOY THÀNH CÔNG CHO STACK: ${{ steps.select-env.outputs.stack }}"
-          echo "=================================================="
+          echo "DEPLOY THÀNH CÔNG CHO STACK: $STACK"
           pulumi stack output

@@ -2,21 +2,21 @@ package network
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/pulumi/pulumi-aws/sdk/v7/go/aws"
 	"github.com/pulumi/pulumi-aws/sdk/v7/go/aws/ec2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
+	"infra-poc/internal/shared"
 )
 
 type subnetResult struct {
-	publicSubnetIDs   pulumi.StringArray
-	privateSubnetIDs  pulumi.StringArray
-	privateSubnetList []pulumi.StringOutput
+	public  pulumi.StringArray
+	private pulumi.StringArray
 }
 
-// newSubnets khoi tao 2 Public Subnets va 2 Private Subnets o 2 AZs khac nhau
-func newSubnets(ctx *pulumi.Context, name, stack string, vpc *ec2.Vpc, vpcCidr string) (*subnetResult, error) {
+// newSubnets khoi tao public/private subnets, moi CIDR dat o 1 AZ khac nhau
+func newSubnets(ctx *pulumi.Context, name, stack string, vpc *ec2.Vpc, publicCidrs, privateCidrs []string, opt pulumi.ResourceOption) (*subnetResult, error) {
 	// Lay danh sach Availability Zones kha dung
 	azs, err := aws.GetAvailabilityZones(ctx, &aws.GetAvailabilityZonesArgs{
 		State: pulumi.StringRef("available"),
@@ -25,59 +25,51 @@ func newSubnets(ctx *pulumi.Context, name, stack string, vpc *ec2.Vpc, vpcCidr s
 		return nil, fmt.Errorf("getting azs: %w", err)
 	}
 
-	// Tinh toan dai CIDR dua vao vpcCidr (vi du: 10.10.0.0/16 -> prefix "10.10")
-	parts := strings.Split(vpcCidr, ".")
-	prefix := fmt.Sprintf("%s.%s", parts[0], parts[1])
-	pubCidrs := []string{fmt.Sprintf("%s.1.0/24", prefix), fmt.Sprintf("%s.2.0/24", prefix)}
-	privCidrs := []string{fmt.Sprintf("%s.10.0/24", prefix), fmt.Sprintf("%s.20.0/24", prefix)}
-
-	// 1. Public Subnets (2 AZs)
-	publicSubnetIDs := make(pulumi.StringArray, 2)
-	for i := 0; i < 2; i++ {
-		az := azs.Names[i]
-		subnet, err := ec2.NewSubnet(ctx, fmt.Sprintf("%s-pub-sub-%d", name, i+1), &ec2.SubnetArgs{
-			VpcId:               vpc.ID(),
-			CidrBlock:           pulumi.String(pubCidrs[i]),
-			AvailabilityZone:    pulumi.String(az),
-			MapPublicIpOnLaunch: pulumi.Bool(true),
-			Tags: pulumi.StringMap{
-				"Name":  pulumi.Sprintf("%s-pub-sub-%d-%s", name, i+1, stack),
-				"Stack": pulumi.String(stack),
-				"Type":  pulumi.String("public"),
-			},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("creating public subnet %d: %w", i+1, err)
-		}
-		publicSubnetIDs[i] = subnet.ID()
+	// 1. Public Subnets (ALB + Fargate task, co public IP)
+	public, err := createSubnets(ctx, name, stack, vpc, azs.Names, publicCidrs, "public", opt)
+	if err != nil {
+		return nil, err
 	}
 
-	// 2. Private Subnets (2 AZs - cho RDS / EFS)
-	privateSubnetIDs := make(pulumi.StringArray, 2)
-	privateSubnetList := make([]pulumi.StringOutput, 2)
-	for i := 0; i < 2; i++ {
-		az := azs.Names[i]
-		subnet, err := ec2.NewSubnet(ctx, fmt.Sprintf("%s-priv-sub-%d", name, i+1), &ec2.SubnetArgs{
-			VpcId:               vpc.ID(),
-			CidrBlock:           pulumi.String(privCidrs[i]),
-			AvailabilityZone:    pulumi.String(az),
-			MapPublicIpOnLaunch: pulumi.Bool(false),
-			Tags: pulumi.StringMap{
-				"Name":  pulumi.Sprintf("%s-priv-sub-%d-%s", name, i+1, stack),
-				"Stack": pulumi.String(stack),
-				"Type":  pulumi.String("private"),
-			},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("creating private subnet %d: %w", i+1, err)
-		}
-		privateSubnetIDs[i] = subnet.ID()
-		privateSubnetList[i] = subnet.ID().ToStringOutput()
+	// 2. Private Subnets (RDS / EFS)
+	private, err := createSubnets(ctx, name, stack, vpc, azs.Names, privateCidrs, "private", opt)
+	if err != nil {
+		return nil, err
 	}
 
-	return &subnetResult{
-		publicSubnetIDs:   publicSubnetIDs,
-		privateSubnetIDs:  privateSubnetIDs,
-		privateSubnetList: privateSubnetList,
-	}, nil
+	return &subnetResult{public: public, private: private}, nil
+}
+
+// createSubnets tao 1 subnet cho moi CIDR; subnetType la "public" hoac "private"
+func createSubnets(
+	ctx *pulumi.Context,
+	name, stack string,
+	vpc *ec2.Vpc,
+	azNames, cidrs []string,
+	subnetType string,
+	opt pulumi.ResourceOption,
+) (pulumi.StringArray, error) {
+	if len(azNames) < len(cidrs) {
+		return nil, fmt.Errorf("need %d azs for %s subnets, region only has %d", len(cidrs), subnetType, len(azNames))
+	}
+
+	// Ten logical ngan: "pub-sub" / "priv-sub"
+	short := map[string]string{"public": "pub", "private": "priv"}[subnetType]
+
+	ids := make(pulumi.StringArray, len(cidrs))
+	for i, cidr := range cidrs {
+		resName := fmt.Sprintf("%s-%s-sub-%d", name, short, i+1)
+		subnet, err := ec2.NewSubnet(ctx, resName, &ec2.SubnetArgs{
+			VpcId:               vpc.ID(),
+			CidrBlock:           pulumi.String(cidr),
+			AvailabilityZone:    pulumi.String(azNames[i]),
+			MapPublicIpOnLaunch: pulumi.Bool(subnetType == "public"),
+			Tags:                shared.Tags(resName, stack, pulumi.StringMap{"Type": pulumi.String(subnetType)}),
+		}, opt)
+		if err != nil {
+			return nil, fmt.Errorf("creating %s subnet %d: %w", subnetType, i+1, err)
+		}
+		ids[i] = subnet.ID()
+	}
+	return ids, nil
 }

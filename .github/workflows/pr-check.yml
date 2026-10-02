@@ -6,11 +6,24 @@ on:
       - dev
       - staging
       - main
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+
+# Push liên tục vào PR: hủy preview cũ, chỉ chạy bản mới nhất
+concurrency:
+  group: pr-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
-  id-token: write     # Bắt buộc để xác thực AWS OIDC
-  contents: read      # Đọc mã nguồn repo
+  id-token: write      # Bắt buộc để xác thực AWS OIDC
+  contents: read       # Đọc mã nguồn repo
   pull-requests: write # Tự động gửi comment diff vào PR
+
+env:
+  AWS_REGION: "ap-southeast-1"
+  # Nhánh đích -> stack: main -> prod, staging -> staging, dev -> dev
+  STACK: ${{ github.base_ref == 'main' && 'prod' || github.base_ref }}
 
 jobs:
   validate-and-preview:
@@ -24,76 +37,61 @@ jobs:
       - name: "Setup Go"
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
-          cache: true
+          go-version-file: infra/go.mod
+          cache-dependency-path: |
+            infra/go.sum
+            app/go.sum
 
-      - name: "1. Kiểm tra compile mã nguồn App"
+      - name: "1. Kiểm tra mã nguồn App (go.mod sạch, compile)"
+        working-directory: ./app
         run: |
-          cd app
-          go mod tidy
+          go mod tidy -diff
           go build -v -o /dev/null .
 
-      - name: "2. Kiểm tra compile mã nguồn Infra"
+      - name: "2. Kiểm tra mã nguồn Infra (go.mod sạch, vet, test)"
+        working-directory: ./infra
         run: |
-          cd infra
-          go mod tidy
-          go build -v -o /dev/null .
+          go mod tidy -diff
+          go vet ./...
+          go test ./...
 
-      - name: "3. Xác định Stack và Role Preview theo nhánh đích"
-        id: select-env
-        env:
-          DEV_ROLE: ${{ secrets.AWS_ROLE_DEV_DEPLOY }}
-          STAGING_ROLE: ${{ secrets.AWS_ROLE_STAGING_PREVIEW }}
-          PROD_ROLE: ${{ secrets.AWS_ROLE_PROD_PREVIEW }}
-        run: |
-          TARGET_BRANCH="${{ github.base_ref }}"
-          echo "Target Branch: $TARGET_BRANCH"
-
-          if [ "$TARGET_BRANCH" = "main" ]; then
-            STACK="prod"
-            ROLE_ARN="$PROD_ROLE"
-          elif [ "$TARGET_BRANCH" = "staging" ]; then
-            STACK="staging"
-            ROLE_ARN="$STAGING_ROLE"
-          else
-            STACK="dev"
-            ROLE_ARN="$DEV_ROLE"
-          fi
-
-          if [ -z "$ROLE_ARN" ]; then
-            echo "::error::Khong tim thay secret role preview cho stack $STACK! Vui long kiem tra muc 'Repository secrets' tren GitHub Settings."
-            exit 1
-          fi
-
-          echo "stack=$STACK" >> $GITHUB_OUTPUT
-          echo "role_arn=$ROLE_ARN" >> $GITHUB_OUTPUT
-
-      - name: "4. Xác thực AWS qua OIDC (Role Read-Only tương ứng)"
+      - name: "3. Xác thực AWS qua OIDC (Role Preview read-only)"
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ steps.select-env.outputs.role_arn }}
-          aws-region: "ap-southeast-1"
+          role-to-assume: ${{ github.base_ref == 'main' && secrets.AWS_ROLE_PROD_PREVIEW || github.base_ref == 'staging' && secrets.AWS_ROLE_STAGING_PREVIEW || secrets.AWS_ROLE_DEV_PREVIEW }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: "5. Cài đặt Pulumi CLI"
+      - name: "4. Cài đặt Pulumi CLI"
         uses: pulumi/actions@v5
 
-      - name: "6. Chạy Pulumi Preview"
+      - name: "5. Chạy Pulumi Preview"
         id: pulumi-preview
         working-directory: ./infra
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          pulumi login "s3://pulumi-state-poc-${ACCOUNT_ID}?region=ap-southeast-1"
-          pulumi stack select ${{ steps.select-env.outputs.stack }}
-          
-          # Chay preview va ghi log ra file
-          pulumi preview --diff > preview_output.txt 2>&1 || true
+          pulumi login "s3://pulumi-state-poc-${ACCOUNT_ID}?region=${AWS_REGION}"
+          pulumi stack select "$STACK"
+
+          # Giữ image đang chạy để diff chỉ phản ánh thay đổi hạ tầng
+          # (imageTag chỉ được set lúc deploy, không có trong Pulumi.<stack>.yaml)
+          CURRENT_TAG=$(pulumi stack output imageTag 2>/dev/null || true)
+          pulumi config set imageTag "${CURRENT_TAG:-latest}"
+          echo "imageTag dùng cho preview: ${CURRENT_TAG:-latest}"
+
+          # Ghi log ra file; giữ exit code để fail job ở bước cuối (sau khi comment PR)
+          set +e
+          pulumi preview --diff > preview_output.txt 2>&1
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          set -e
           cat preview_output.txt
 
-      - name: "7. Tự động comment kết quả Preview vào Pull Request"
+      - name: "6. Comment kết quả Preview vào Pull Request (cập nhật comment cũ)"
+        if: always() && steps.pulumi-preview.outcome != 'skipped'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
+            const marker = '<!-- pulumi-preview -->';
             const previewPath = './infra/preview_output.txt';
             let previewContent = 'Không tìm thấy log preview.';
             if (fs.existsSync(previewPath)) {
@@ -103,23 +101,34 @@ jobs:
                 previewContent = previewContent.slice(0, 60000) + '\n... (output quá dài, đã rút gọn)';
               }
             }
-            
-            const targetStack = '${{ steps.select-env.outputs.stack }}';
-            const body = `### 🚀 Pulumi Preview Output (\`stack: ${targetStack}\`)
-            
+
+            const exitCode = '${{ steps.pulumi-preview.outputs.exit_code }}';
+            const status = exitCode === '0' ? '✅ Thành công' : '❌ Lỗi';
+            const body = `${marker}
+            ### Pulumi Preview (\`stack: ${process.env.STACK}\`): ${status}
+
             <details><summary>Nhấn vào đây để xem chi tiết Diff hạ tầng</summary>
-            
+
             \`\`\`
             ${previewContent}
             \`\`\`
-            
+
             </details>
-            
-            *Commit SHA: \`${context.sha}\` | Được kích hoạt bởi: @${context.actor}*`;
-            
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: body
-            });
+
+            *Commit SHA: \`${context.payload.pull_request.head.sha}\` | Được kích hoạt bởi: @${context.actor}*`;
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+      - name: "7. Fail job nếu Pulumi Preview lỗi"
+        if: steps.pulumi-preview.outputs.exit_code != '0'
+        run: |
+          echo "::error::Pulumi preview thất bại (exit code ${{ steps.pulumi-preview.outputs.exit_code }}), xem log ở bước 5."
+          exit 1
