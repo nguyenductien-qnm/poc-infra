@@ -5,6 +5,8 @@ import (
 
 	"github.com/pulumi/pulumi-aws/sdk/v7/go/aws/iam"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
+	"infra-poc/internal/shared"
 )
 
 type appIamResult struct {
@@ -13,30 +15,16 @@ type appIamResult struct {
 }
 
 // newAppIamRoles tao ECS Task Execution Role va Task Role
-func newAppIamRoles(ctx *pulumi.Context, name, stack string, dbSecretArn pulumi.StringInput) (*appIamResult, error) {
-	// IAM Assume Role Policy chung cho ECS Tasks
-	ecsTasksAssumeRolePolicy := `{
-		"Version": "2012-10-17",
-		"Statement": [
-			{
-				"Action": "sts:AssumeRole",
-				"Principal": {
-					"Service": "ecs-tasks.amazonaws.com"
-				},
-				"Effect": "Allow"
-			}
-		]
-	}`
+func newAppIamRoles(ctx *pulumi.Context, name, stack string, dbSecretArn pulumi.StringInput, opt pulumi.ResourceOption) (*appIamResult, error) {
+	ecsTasksTrust := pulumi.String(assumeRolePolicy("ecs-tasks.amazonaws.com"))
 
 	// 1. ECS Task Execution Role (keo image, ghi log CloudWatch, doc secrets)
-	execRole, err := iam.NewRole(ctx, fmt.Sprintf("%s-exec-role", name), &iam.RoleArgs{
-		Name:             pulumi.Sprintf("%s-exec-role-%s", name, stack),
-		AssumeRolePolicy: pulumi.String(ecsTasksAssumeRolePolicy),
-		Tags: pulumi.StringMap{
-			"Name":  pulumi.Sprintf("%s-exec-role-%s", name, stack),
-			"Stack": pulumi.String(stack),
-		},
-	})
+	execRoleName := fmt.Sprintf("%s-exec-role", name)
+	execRole, err := iam.NewRole(ctx, execRoleName, &iam.RoleArgs{
+		Name:             pulumi.String(execRoleName + "-" + stack),
+		AssumeRolePolicy: ecsTasksTrust,
+		Tags:             shared.Tags(execRoleName, stack),
+	}, opt)
 	if err != nil {
 		return nil, fmt.Errorf("creating task exec role: %w", err)
 	}
@@ -45,7 +33,7 @@ func newAppIamRoles(ctx *pulumi.Context, name, stack string, dbSecretArn pulumi.
 	_, err = iam.NewRolePolicyAttachment(ctx, fmt.Sprintf("%s-exec-policy-attach", name), &iam.RolePolicyAttachmentArgs{
 		Role:      execRole.Name,
 		PolicyArn: pulumi.String("arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"),
-	})
+	}, opt)
 	if err != nil {
 		return nil, fmt.Errorf("attaching exec policy: %w", err)
 	}
@@ -53,52 +41,30 @@ func newAppIamRoles(ctx *pulumi.Context, name, stack string, dbSecretArn pulumi.
 	// Cap quyen doc Secret tu Secrets Manager cho Execution Role
 	_, err = iam.NewRolePolicy(ctx, fmt.Sprintf("%s-exec-secret-policy", name), &iam.RolePolicyArgs{
 		Role: execRole.Name,
-		Policy: pulumi.Sprintf(`{
-			"Version": "2012-10-17",
-			"Statement": [
-				{
-					"Effect": "Allow",
-					"Action": [
-						"secretsmanager:GetSecretValue"
-					],
-					"Resource": "%s"
-				}
-			]
-		}`, dbSecretArn),
-	})
+		Policy: dbSecretArn.ToStringOutput().ApplyT(func(arn string) string {
+			return allowPolicy(arn, "secretsmanager:GetSecretValue")
+		}).(pulumi.StringOutput),
+	}, opt)
 	if err != nil {
 		return nil, fmt.Errorf("attaching secret policy to exec role: %w", err)
 	}
 
 	// 2. ECS Task Role (danh rieng cho code chay ben trong container)
-	taskRole, err := iam.NewRole(ctx, fmt.Sprintf("%s-task-role", name), &iam.RoleArgs{
-		Name:             pulumi.Sprintf("%s-task-role-%s", name, stack),
-		AssumeRolePolicy: pulumi.String(ecsTasksAssumeRolePolicy),
-		Tags: pulumi.StringMap{
-			"Name":  pulumi.Sprintf("%s-task-role-%s", name, stack),
-			"Stack": pulumi.String(stack),
-		},
-	})
+	taskRoleName := fmt.Sprintf("%s-task-role", name)
+	taskRole, err := iam.NewRole(ctx, taskRoleName, &iam.RoleArgs{
+		Name:             pulumi.String(taskRoleName + "-" + stack),
+		AssumeRolePolicy: ecsTasksTrust,
+		Tags:             shared.Tags(taskRoleName, stack),
+	}, opt)
 	if err != nil {
 		return nil, fmt.Errorf("creating task role: %w", err)
 	}
 
-	// Theo PLAN.md: Task role co policy bedrock:InvokeModel
+	// Theo docs/PLAN.md: Task role co policy bedrock:InvokeModel
 	_, err = iam.NewRolePolicy(ctx, fmt.Sprintf("%s-bedrock-policy", name), &iam.RolePolicyArgs{
-		Role: taskRole.Name,
-		Policy: pulumi.String(`{
-			"Version": "2012-10-17",
-			"Statement": [
-				{
-					"Effect": "Allow",
-					"Action": [
-						"bedrock:InvokeModel"
-					],
-					"Resource": "*"
-				}
-			]
-		}`),
-	})
+		Role:   taskRole.Name,
+		Policy: pulumi.String(allowPolicy("*", "bedrock:InvokeModel")),
+	}, opt)
 	if err != nil {
 		return nil, fmt.Errorf("attaching bedrock policy: %w", err)
 	}

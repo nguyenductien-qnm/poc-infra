@@ -109,4 +109,13 @@ Bỏ `protect` trước nếu cần destroy prod. RDS đặt `skipFinalSnapshot=
 
 Tổng thời gian ước tính khoảng 1-2 ngày làm việc.
 
-Công ty đang dùng CI nào (GitHub Actions, GitLab, Jenkins...) và POC này chạy trên account riêng hay chung với người khác? Trả lời hai câu đó thì mình chỉnh Phase 5 và phần đặt tên/IAM cho khớp. Cần thì mình xuất kế hoạch này thành file MD.
+## Thay đổi khi triển khai so với kế hoạch
+
+| Kế hoạch                                     | Thực tế                                                                                                     | Lý do                                                                          |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `app` chạy image nginx công khai             | Web app Go tự viết (`app/`), đọc/ghi Postgres, có `/health`                                                 | Chứng minh được kết nối App → RDS qua Secrets Manager, không chỉ trang tĩnh    |
+| ECR 1 repo trong `platform`                  | ECR dùng chung `poc-app` tạo ngoài stack (docs/SETUP.md bước 3b), image tag theo Git SHA                    | 3 stack dùng chung image; destroy stack không mất image                         |
+| Mỗi package có `Args`/`Outputs` + `New()`    | `Args` + `New()` trả về **ComponentResource** (`infra-poc:<package>:<Tên>`), thêm package `shared`          | Preview/console nhóm resource theo module; gom hằng số, tag, egress dùng chung |
+| CI: PR preview, merge up, approval           | Push chạy 2 job `preview` → `deploy` (GitHub Environment, Required reviewers cho staging/prod)              | Người duyệt xem diff trước khi approve                                         |
+| IAM: role deploy chỉ CI assume, dev read-only | 6 role (preview read-only + deploy cho mỗi env), trust `StringEquals` với OIDC `sub` immutable (`@<id>`)   | Repo tạo sau 15/07/2026 dùng format `sub` mới; tránh wildcard bị lợi dụng      |
+| Cờ `enableTgw`                               | Có trong config, **chưa có code dùng**                                                                      | TGW/NAT ngoài phạm vi POC                                                      |
