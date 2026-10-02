@@ -89,11 +89,11 @@ pulumi config set aws:region ap-southeast-1
 ---
 
 ### Bước 8: Tạo khung code 4 package `internal/` & liên kết `main.go`
-- [internal/network/network.go](file:///Users/ductiennguyen/Downloads/pulumi/internal/network/network.go)
-- [internal/data/data.go](file:///Users/ductiennguyen/Downloads/pulumi/internal/data/data.go)
-- [internal/platform/platform.go](file:///Users/ductiennguyen/Downloads/pulumi/internal/platform/platform.go)
-- [internal/app/app.go](file:///Users/ductiennguyen/Downloads/pulumi/internal/app/app.go)
-- [main.go](file:///Users/ductiennguyen/Downloads/pulumi/main.go)
+- [infra/internal/network/](../infra/internal/network/module.go)
+- [infra/internal/data/](../infra/internal/data/module.go)
+- [infra/internal/platform/](../infra/internal/platform/module.go)
+- [infra/internal/app/](../infra/internal/app/module.go)
+- [infra/main.go](../infra/main.go)
 
 ### Bước 9: Kiểm tra compile & preview
 ```bash
@@ -106,9 +106,9 @@ pulumi preview
 ---
 
 ### Bước 10: Viết mã nguồn triển khai thực tế cho `network` & `platform`
-- [internal/network/network.go](file:///Users/ductiennguyen/Downloads/pulumi/internal/network/network.go): VPC, Internet Gateway, 2 Public Subnets, 2 Private Subnets, Route Tables & S3 Gateway Endpoint.
-- [internal/platform/platform.go](file:///Users/ductiennguyen/Downloads/pulumi/internal/platform/platform.go): ECS Cluster, ECR Repo, CloudWatch Log Group, ALB HTTP, Target Group (ip type cho Fargate), Security Group.
-- [main.go](file:///Users/ductiennguyen/Downloads/pulumi/main.go): Kết nối output `network` sang `platform` và export thông tin.
+- [infra/internal/network/](../infra/internal/network/module.go): VPC, Internet Gateway, 2 Public Subnets, 2 Private Subnets, Route Tables & S3 Gateway Endpoint.
+- [infra/internal/platform/](../infra/internal/platform/module.go): ECS Cluster, CloudWatch Log Group, ALB HTTP, Target Group (ip type cho Fargate), Security Group ALB/App. ECR sau đó chuyển thành repo dùng chung `poc-app` (Bước 3b), không còn tạo trong stack.
+- [infra/main.go](../infra/main.go): Kết nối output `network` sang `platform` và export thông tin.
 
 ### Bước 11: Kiểm tra preview Phase 2
 ```bash
@@ -120,9 +120,20 @@ pulumi preview
 
 ---
 
-## 3. Các bước tiếp theo
-- **Lựa chọn 1**: Chạy `pulumi up` ngay trên stack `dev` để tạo thật 21 tài nguyên trên AWS (kiểm tra bằng `aws ec2 describe-vpcs` và ALB DNS).
-- **Lựa chọn 2**: Viết tiếp code **Phase 3 (`data` + `app`)** gồm RDS PostgreSQL, EFS, ECS Fargate Service (Nginx) rồi `pulumi up` một thể.
+## 3. Thiết lập CI/CD (GitHub Actions + OIDC)
 
+### Bước 12: Tạo OIDC provider và 6 IAM role cho CI
+```bash
+bash scripts/setup-ci-roles.sh nguyenductien-qnm poc-infra
+# Repo private: GITHUB_OWNER_ID=... GITHUB_REPO_ID=... bash scripts/setup-ci-roles.sh
+```
+Trust policy dùng `StringEquals` với OIDC `sub` dạng immutable `repo:<owner>@<owner_id>/<repo>@<repo_id>:...` (repo tạo sau 15/07/2026). Role deploy tin `environment:<env>`, role preview tin `pull_request`.
 
+### Bước 13: Cấu hình GitHub repo
+- **Secrets** (Settings > Secrets and variables > Actions): `AWS_ROLE_DEV_PREVIEW`, `AWS_ROLE_DEV_DEPLOY`, `AWS_ROLE_STAGING_PREVIEW`, `AWS_ROLE_STAGING_DEPLOY`, `AWS_ROLE_PROD_PREVIEW`, `AWS_ROLE_PROD_DEPLOY` (ARN in ra cuối script).
+- **Environments** (Settings > Environments): tạo `dev`, `staging`, `prod`. Bật *Required reviewers* cho `staging` và `prod`; giới hạn deployment branch `main` cho `prod`.
 
+### Bước 14: Kiểm tra flow
+- Mở PR vào `dev`: job `pr-check` chạy preview, comment diff vào PR.
+- Merge vào `dev`: job `preview` in diff ra Job Summary, sau đó job `deploy` build image tag Git SHA và `pulumi up` stack `dev`.
+- Push `staging` / `main`: job `preview` chạy trước; job `deploy` chờ approval trên environment (người duyệt xem diff ở Job Summary) rồi mới deploy.

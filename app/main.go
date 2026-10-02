@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -29,6 +30,7 @@ type PageData struct {
 }
 
 var (
+	dbMu   sync.Mutex // bao ve db, dbHost, dbName (goroutine retry + handler cung goi initDB)
 	db     *sql.DB
 	dbHost string
 	dbName string
@@ -349,7 +351,22 @@ const htmlTemplate = `<!DOCTYPE html>
 </body>
 </html>`
 
+var pageTmpl = template.Must(template.New("index").Parse(htmlTemplate))
+
+// getDB tra ve snapshot ket noi DB hien tai
+func getDB() (*sql.DB, string, string) {
+	dbMu.Lock()
+	defer dbMu.Unlock()
+	return db, dbHost, dbName
+}
+
 func initDB() error {
+	dbMu.Lock()
+	defer dbMu.Unlock()
+	if db != nil {
+		return nil
+	}
+
 	endpoint := os.Getenv("DB_ENDPOINT") // ví dụ: "poc-db.xxx.ap-southeast-1.rds.amazonaws.com:5432"
 	dbHost = os.Getenv("DB_HOST")
 	if dbHost == "" && endpoint != "" {
@@ -392,17 +409,17 @@ func initDB() error {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s connect_timeout=5",
 		dbHost, dbPort, dbUser, dbPass, dbName, sslMode)
 
-	var err error
-	db, err = sql.Open("postgres", dsn)
+	conn, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return fmt.Errorf("opening db: %w", err)
 	}
 
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	conn.SetMaxOpenConns(10)
+	conn.SetMaxIdleConns(5)
+	conn.SetConnMaxLifetime(5 * time.Minute)
 
-	if err := db.Ping(); err != nil {
+	if err := conn.Ping(); err != nil {
+		conn.Close()
 		return fmt.Errorf("pinging db: %w", err)
 	}
 
@@ -413,10 +430,12 @@ func initDB() error {
 		content TEXT NOT NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);`
-	_, err = db.Exec(createTableSQL)
-	if err != nil {
+	if _, err := conn.Exec(createTableSQL); err != nil {
+		conn.Close()
 		return fmt.Errorf("creating table: %w", err)
 	}
+
+	db = conn
 
 	log.Println("Database connection & migration successful!")
 	return nil
@@ -428,14 +447,15 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	conn, host, name := getDB()
 	data := PageData{
-		Connected: db != nil && db.Ping() == nil,
-		DbHost:    dbHost,
-		DbName:    dbName,
+		Connected: conn != nil && conn.Ping() == nil,
+		DbHost:    host,
+		DbName:    name,
 	}
 
 	if data.Connected {
-		rows, err := db.Query("SELECT id, content, created_at FROM notes ORDER BY id DESC LIMIT 50")
+		rows, err := conn.Query("SELECT id, content, created_at FROM notes ORDER BY id DESC LIMIT 50")
 		if err != nil {
 			data.ErrorMsg = err.Error()
 		} else {
@@ -452,8 +472,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		_ = initDB()
 	}
 
-	tmpl := template.Must(template.New("index").Parse(htmlTemplate))
-	_ = tmpl.Execute(w, data)
+	_ = pageTmpl.Execute(w, data)
 }
 
 func handleAddNote(w http.ResponseWriter, r *http.Request) {
@@ -463,8 +482,8 @@ func handleAddNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	content := strings.TrimSpace(r.FormValue("content"))
-	if content != "" && db != nil {
-		_, err := db.Exec("INSERT INTO notes (content) VALUES ($1)", content)
+	if conn, _, _ := getDB(); content != "" && conn != nil {
+		_, err := conn.Exec("INSERT INTO notes (content) VALUES ($1)", content)
 		if err != nil {
 			log.Printf("Insert error: %v\n", err)
 		}

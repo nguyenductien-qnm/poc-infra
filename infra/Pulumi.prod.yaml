@@ -5,6 +5,6 @@ config:
   infra-poc:vpcCidr: 10.30.0.0/16
   infra-poc:desiredCount: "2"
   infra-poc:dbInstanceClass: db.t4g.small
-  infra-poc:protectStateful: "true"
-  infra-poc:deletionProtection: "true"
+  infra-poc:protectStateful: "false"
+  infra-poc:deletionProtection: "false"
   infra-poc:enableTgw: "false"
