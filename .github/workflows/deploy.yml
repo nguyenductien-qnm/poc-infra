@@ -1,14 +1,17 @@
 name: "CD Deploy Infrastructure & App"
 
+# TẠM TẮT trigger tự động trong lúc chuyển sang bootstrap/workload (chưa up bootstrap).
+# Bật lại: khôi phục khối push bên dưới.
 on:
-  push:
-    branches:
-      - dev
-      - staging
-      - main
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
+  workflow_dispatch:
+#  push:
+#    branches:
+#      - dev
+#      - staging
+#      - main
+#    paths-ignore:
+#      - "**.md"
+#      - "docs/**"
 
 # Đảm bảo chỉ 1 lần deploy chạy trên mỗi stack tại một thời điểm (chống xung đột State)
 concurrency:
@@ -55,7 +58,7 @@ jobs:
         uses: pulumi/actions@v5
 
       - name: "3. Pulumi Preview với image tag mới"
-        working-directory: ./infra
+        working-directory: ./infra/workload
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           pulumi login "s3://pulumi-state-poc-${ACCOUNT_ID}?region=${AWS_REGION}"
@@ -80,7 +83,7 @@ jobs:
 
   # ----------------------------------------------------------------------------
   # Job 2: Deploy trong GitHub Environment (staging/prod có Required reviewers).
-  # OIDC sub = <repo>:environment:<env>, trust policy trong scripts/setup-ci-roles.sh đã khớp.
+  # OIDC sub = <repo>:environment:<env>, trust policy do infra/bootstrap (package ciiam) quản lý.
   # ----------------------------------------------------------------------------
   deploy:
     name: "Deploy (${{ github.ref_name == 'main' && 'prod' || github.ref_name }})"
@@ -120,7 +123,7 @@ jobs:
           docker push "$ECR_URL:${IMAGE_TAG::7}"
 
       - name: "4. Deploy Hạ tầng AWS qua Pulumi Up"
-        working-directory: ./infra
+        working-directory: ./infra/workload
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           pulumi login "s3://pulumi-state-poc-${ACCOUNT_ID}?region=${AWS_REGION}"
@@ -129,7 +132,7 @@ jobs:
           pulumi up --yes --diff
 
       - name: "5. Xuất thông tin sau khi Deploy hoàn tất"
-        working-directory: ./infra
+        working-directory: ./infra/workload
         run: |
           echo "DEPLOY THÀNH CÔNG CHO STACK: $STACK"
           pulumi stack output

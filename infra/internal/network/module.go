@@ -7,9 +7,8 @@ import (
 )
 
 type Args struct {
-	VpcCidr   string
-	Region    string
-	EnableTgw bool
+	VpcCidr string
+	Region  string
 }
 
 // Network la ComponentResource gom moi resource network lam con (hien thanh 1 nhom trong preview/console)
