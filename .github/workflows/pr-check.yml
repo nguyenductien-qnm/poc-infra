@@ -78,9 +78,11 @@ jobs:
 
           # Giữ image đang chạy để diff chỉ phản ánh thay đổi hạ tầng
           # (imageTag chỉ được set lúc deploy, không có trong Pulumi.<stack>.yaml)
+          # Stack chưa có image thì dùng SHA của PR (preview không cần image tồn tại), không dùng :latest
           CURRENT_TAG=$(pulumi stack output imageTag 2>/dev/null || true)
-          pulumi config set imageTag "${CURRENT_TAG:-latest}"
-          echo "imageTag dùng cho preview: ${CURRENT_TAG:-latest}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          pulumi config set imageTag "${CURRENT_TAG:-${HEAD_SHA::7}}"
+          echo "imageTag dùng cho preview: ${CURRENT_TAG:-${HEAD_SHA::7}}"
 
           # Ghi log ra file; giữ exit code để fail job ở bước cuối (sau khi comment PR)
           set +e
