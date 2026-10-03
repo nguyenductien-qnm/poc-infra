@@ -7,22 +7,32 @@ POC chứng minh cách tổ chức IaC bằng Pulumi Go: **một codebase, 3 sta
 ```
 .
 ├── app/                    Web app Go (ghi note vào Postgres), build thành image ECR poc-app
-├── infra/
-│   ├── main.go             Đọc config stack, ghép 4 package
-│   ├── Pulumi.<stack>.yaml Config từng môi trường
-│   └── internal/
+├── infra/                  Một Go module, hai Pulumi project
+│   ├── bootstrap/          Project infra-bootstrap: nền cho workload, admin chạy tay (docs/BOOTSTRAP.md)
+│   │   ├── main.go
+│   │   ├── Pulumi.poc.yaml Config 1 stack cho 1 account
+│   │   └── internal/       Chỉ bootstrap import được (Go chặn lúc build)
+│   │       ├── statebackend/  S3 state workload, KMS key mã hoá secret
+│   │       ├── registry/      ECR poc-app
+│   │       └── ciiam/         GitHub OIDC provider, role preview/deploy
+│   ├── workload/           Project infra-poc: ứng dụng, CI deploy
+│   │   ├── main.go         Đọc config stack, ghép 4 package
+│   │   └── Pulumi.<stack>.yaml Config từng môi trường
+│   └── internal/           Package dùng lại được
 │       ├── network/        VPC, 2 public + 2 private subnet, S3 Gateway Endpoint
 │       ├── platform/       ECS Cluster, ALB (HTTP), Security Group ALB/App, CloudWatch Logs
 │       ├── data/           RDS PostgreSQL 16 (password trong Secrets Manager), EFS
 │       ├── app/            IAM exec/task role, Task Definition, ECS Fargate Service
-│       └── shared/         Hằng số (port, DB name/user), helper Tags, egress SG
-├── .github/workflows/      pr-check.yml (preview), deploy.yml (up)
-├── docs/                   PLAN, SETUP, proposal
+│       └── shared/         Hằng số, helper Tags/egress SG, kiểm tra account
+├── .github/workflows/      pr-check.yml (preview), deploy.yml (up) cho workload
+├── docs/                   PLAN, SETUP, BOOTSTRAP, proposal
 └── scripts/
-    └── setup-ci-roles.sh   Tạo OIDC provider + 6 IAM role cho CI
+    └── setup-bootstrap-backend.sh  Tạo bucket lưu state của bootstrap (resource tạo tay duy nhất)
 ```
 
 Mỗi package trong `internal/` (trừ `shared`) là một Pulumi **ComponentResource** (`infra-poc:<package>:<Tên>`), mọi resource AWS là con của component đó, nên `pulumi preview` và console nhóm resource theo module.
+
+Hai project tách vì khác vòng đời và quyền: workload đổi thường xuyên, deploy qua CI; bootstrap hiếm đổi, chỉ admin chạy, nên pipeline workload không sửa được role CI hay xoá state/ECR. State workload ở bucket `pulumi-state-poc-<account>`, state bootstrap ở bucket riêng `pulumi-bootstrap-poc-<account>`.
 
 Luồng truy cập: Internet → ALB (port 80) → Fargate task (public subnet) → RDS (private subnet, chỉ nhận từ App SG).
 
@@ -30,16 +40,19 @@ Luồng truy cập: Internet → ALB (port 80) → Fargate task (public subnet) 
 
 | Config               | dev          | staging      | prod         |
 | -------------------- | ------------ | ------------ | ------------ |
+| `expectedAccount`    | secret       | secret       | secret       |
 | `vpcCidr`            | 10.10.0.0/16 | 10.20.0.0/16 | 10.30.0.0/16 |
 | `desiredCount`       | 1            | 1            | 2            |
 | `dbInstanceClass`    | db.t4g.micro | db.t4g.micro | db.t4g.small |
 | `protectStateful`    | false        | false        | true         |
 | `deletionProtection` | false        | false        | true         |
-| `enableTgw`          | false        | false        | false        |
 
-`imageTag` do CI set theo Git SHA (7 ký tự) mỗi lần deploy, không lưu trong `Pulumi.<stack>.yaml`. `enableTgw` mới là chỗ để sẵn, chưa có code dùng.
+- `expectedAccount`: account AWS mà stack được phép chạy, lưu dạng secret (mã hoá KMS) để không lộ account ID. Credentials thuộc account khác thì preview/up dừng ngay, chưa tạo gì. Set bằng `pulumi config set --secret expectedAccount <account-id>`.
+- `imageTag` do CI set theo Git SHA (7 ký tự) mỗi lần deploy, không lưu trong `Pulumi.<stack>.yaml`.
 
 ## CI/CD
+
+> **Đang tạm tắt trigger tự động** (chỉ chạy tay bằng `workflow_dispatch`) trong lúc chuyển sang bootstrap/workload. Bật lại sau khi `up` bootstrap theo [docs/BOOTSTRAP.md](docs/BOOTSTRAP.md): bỏ comment khối `pull_request` / `push` trong `.github/workflows/*.yml`. Mô tả dưới đây là hành vi khi bật.
 
 - **PR** vào `dev` / `staging` / `main`: kiểm tra `go mod tidy`, build app, `go vet` + `go test` infra, rồi `pulumi preview --diff` bằng role **read-only** (giữ `imageTag` đang chạy để diff chỉ phản ánh hạ tầng). Kết quả cập nhật vào 1 comment trên PR; preview lỗi thì job fail.
 - **Push** vào `dev` / `staging` / `main` (bỏ qua thay đổi chỉ ở `*.md`, `docs/`), 2 job nối tiếp:
@@ -61,28 +74,24 @@ Trust policy dùng `StringEquals` với OIDC `sub` dạng immutable (repo tạo 
 | `poc-prod-preview-role`    | `pull_request`, ref main | ReadOnly + state/KMS      | `AWS_ROLE_PROD_PREVIEW`    |
 | `poc-prod-deploy-role`     | `environment:prod`      | Admin                      | `AWS_ROLE_PROD_DEPLOY`     |
 
-```bash
-bash scripts/setup-ci-roles.sh [github-owner] [repo-name]
-# Repo private: GITHUB_OWNER_ID=... GITHUB_REPO_ID=... bash scripts/setup-ci-roles.sh
-```
+OIDC provider, các role và policy preview do project bootstrap quản lý (package `ciiam`), thay cho script `setup-ci-roles.sh` cũ. Đổi quyền CI: sửa code, mở PR, admin preview/up theo [docs/BOOTSTRAP.md](docs/BOOTSTRAP.md). ARN role cho GitHub secret lấy từ output `previewRoleArns` / `deployRoleArns` của stack bootstrap.
 
 ## Chạy local
 
 ```bash
-cd infra
+cd infra/workload
 pulumi login "s3://pulumi-state-poc-<account>?region=ap-southeast-1"
 pulumi stack select dev
 # Dùng image đang chạy, nếu không preview sẽ đổi image về :latest
 pulumi config set imageTag "$(pulumi stack output imageTag)"
 pulumi preview
-go test ./...   # unit test (tính CIDR subnet)
 ```
 
-Quy ước: local chỉ chạy `preview`, mọi `up` đi qua CI. Quy ước này chưa được ép bằng IAM: credential admin trên máy vẫn `up` được; muốn ép thì dev dùng role read-only (kịch bản `AccessDenied` ở docs/PLAN.md Phase 6).
+Quy ước: local chỉ chạy `preview` workload, mọi `up` workload đi qua CI. Bootstrap là ngoại lệ: admin chạy tay theo [docs/BOOTSTRAP.md](docs/BOOTSTRAP.md). Quy ước này chưa được ép bằng IAM: credential admin trên máy vẫn `up` được; muốn ép thì dev dùng role read-only (kịch bản `AccessDenied` ở docs/PLAN.md Phase 6).
 
 ## Khác biệt so với production thật
 
-- Fargate task chạy ở **public subnet** có public IP thay vì private subnet + NAT/TGW (`enableTgw=false`).
+- Fargate task chạy ở **public subnet** có public IP thay vì private subnet + NAT/TGW.
 - ALB chỉ **HTTP**, chưa có ACM/HTTPS (cần domain).
 - RDS **single-AZ**, chưa có AWS Backup.
 - Role deploy dùng `AdministratorAccess` cho nhanh; prod thật cần thu hẹp quyền.
@@ -91,10 +100,11 @@ Quy ước: local chỉ chạy `preview`, mọi `up` đi qua CI. Quy ước này
 ## Dọn dẹp
 
 ```bash
-cd infra
+cd infra/workload
 pulumi destroy -s staging && pulumi destroy -s dev
 # prod: tắt protectStateful/deletionProtection, pulumi up, rồi mới destroy
 aws elbv2 describe-load-balancers   # kiểm tra tài nguyên sót
 aws rds describe-db-instances
-# ECR poc-app, S3 state bucket, KMS key, IAM role CI tạo ngoài stack: xóa tay nếu không dùng nữa
 ```
+
+Destroy workload không đụng tới bootstrap. Bucket state, KMS key, ECR được đánh dấu giữ lại khi destroy bootstrap; muốn xoá hẳn phải gỡ `protect` và xoá tay có chủ đích.

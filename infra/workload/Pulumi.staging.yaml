@@ -7,4 +7,5 @@ config:
   infra-poc:dbInstanceClass: db.t4g.micro
   infra-poc:protectStateful: "false"
   infra-poc:deletionProtection: "false"
-  infra-poc:enableTgw: "false"
+  infra-poc:expectedAccount:
+    secure: v1:9oEhDtMpSZZ/nNGJ:flP+AXq/jLxCXxqP+9J6DbGnsPoxpfOtyn1URQ==

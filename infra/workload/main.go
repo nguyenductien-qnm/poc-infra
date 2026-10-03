@@ -5,6 +5,7 @@ import (
 	"infra-poc/internal/data"
 	"infra-poc/internal/network"
 	"infra-poc/internal/platform"
+	"infra-poc/internal/shared"
 
 	"github.com/pulumi/pulumi-aws/sdk/v7/go/aws"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -16,12 +17,12 @@ func main() {
 		cfg := config.New(ctx, "")
 
 		// 1. Doc config theo docs/PLAN.md tu Pulumi.<stack>.yaml
+		expectedAccount := cfg.Require("expectedAccount") // secret: khong commit account ID dang plaintext
 		vpcCidr := cfg.Require("vpcCidr")
 		desiredCount := cfg.RequireInt("desiredCount")
 		dbInstanceClass := cfg.Require("dbInstanceClass")
 		protectStateful := cfg.RequireBool("protectStateful")
 		deletionProtection := cfg.RequireBool("deletionProtection")
-		enableTgw := cfg.GetBool("enableTgw")
 		imageTag := cfg.Get("imageTag")
 		if imageTag == "" {
 			imageTag = "latest"
@@ -32,6 +33,10 @@ func main() {
 		if err != nil {
 			return err
 		}
+		// Sai account thi dung truoc khi tao resource nao
+		if err := shared.CheckAccount(caller.AccountId, expectedAccount); err != nil {
+			return err
+		}
 		region, err := aws.GetRegion(ctx, nil, nil)
 		if err != nil {
 			return err
@@ -40,9 +45,8 @@ func main() {
 
 		// 2. Network Package
 		netOut, err := network.New(ctx, "network", &network.Args{
-			VpcCidr:   vpcCidr,
-			Region:    region.Name,
-			EnableTgw: enableTgw,
+			VpcCidr: vpcCidr,
+			Region:  region.Name,
 		})
 		if err != nil {
 			return err

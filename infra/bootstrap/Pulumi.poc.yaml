@@ -1,0 +1,30 @@
+config:
+  aws:region: ap-southeast-1
+  # true: tiep nhan resource dang co (tao tay/script). Sau khi up import xong, doi thanh false.
+  infra-bootstrap:importExisting: "true"
+  infra-bootstrap:namePrefix: poc
+  infra-bootstrap:stateBucketPrefix: pulumi-state-poc
+  infra-bootstrap:secretsKeyAlias: alias/pulumi-poc-key
+  infra-bootstrap:secretsKeyDescription: Pulumi POC Secrets Encryption Key
+  infra-bootstrap:ecrRepositoryName: poc-app
+  infra-bootstrap:github:
+    owner: nguyenductien-qnm
+    ownerId: "155938378"
+    repo: poc-infra
+    repoId: "1399086159"
+  infra-bootstrap:oidcThumbprints:
+    - 22ff89586561fc2d52f77491e9f1eff1b80be33e
+  # Description giu nguyen nhu role hien co de import khong doi gi
+  infra-bootstrap:ciEnvironments:
+    - name: dev
+      branch: dev
+      previewDescription: CI Preview role cho Dev (Read-Only)
+      deployDescription: CI Deploy role cho moi truong dev
+    - name: staging
+      branch: staging
+      previewDescription: CI Preview role cho Staging (Read-Only)
+      deployDescription: CI Deploy role cho moi truong Staging
+    - name: prod
+      branch: main
+      previewDescription: CI Preview role cho Production (Read-Only)
+      deployDescription: CI Deploy role cho moi truong Production

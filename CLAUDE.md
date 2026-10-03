@@ -8,27 +8,28 @@ POC có vài chỗ làm tắt (public subnet, HTTP, Admin role CI...), liệt k�
 
 | Thư mục | Nội dung | Skill |
 | --- | --- | --- |
-| `infra/` | Pulumi Go: `main.go` ghép `internal/{network,platform,data,app,shared}` | `pulumi-go-aws` |
+| `infra/workload/` | Pulumi project `infra-poc`: `main.go` ghép `infra/internal/{network,platform,data,app}` | `pulumi-go-aws` |
+| `infra/bootstrap/` | Pulumi project `infra-bootstrap`: `bootstrap/internal/{statebackend,registry,ciiam}` (state, KMS, ECR, OIDC, role CI) | `pulumi-go-aws` |
 | `app/` | Go service, Dockerfile, image ECR `poc-app` | `go-ecs-service` |
-| `.github/workflows/`, `scripts/` | CI/CD, IAM role CI (OIDC) | `gitops-github-actions` |
+| `.github/workflows/`, `scripts/` | CI/CD workload, script tạo bucket state bootstrap | `gitops-github-actions` |
 | mọi chỗ | version, field SDK, giá trị AWS, shape dữ liệu | `verify-before-code` |
 
 ## Lệnh
 
 ```bash
 # Kiểm tra (giống CI)
-cd infra && go mod tidy -diff && go vet ./... && go test ./... && go build -o /dev/null .
+cd infra && go mod tidy -diff && go vet ./... && go test ./... && go build ./...
 cd app && go mod tidy -diff && go vet ./... && go build -o /dev/null .
 
-# Preview local (cần credential AWS)
-cd infra
+# Preview workload local (cần credential AWS)
+cd infra/workload
 pulumi login "s3://pulumi-state-poc-<account>?region=ap-southeast-1"
 pulumi stack select dev
 pulumi config set imageTag "$(pulumi stack output imageTag)"   # giữ image đang chạy
 pulumi preview --diff
 ```
 
-Không chạy ở local: `pulumi up`, `pulumi destroy`, `pulumi stack output --show-secrets`, mọi lệnh AWS ghi/xoá. `up` chỉ chạy qua CI.
+Không chạy ở local: `pulumi up`, `pulumi destroy`, `pulumi stack output --show-secrets`, mọi lệnh AWS ghi/xoá. `up` workload chỉ chạy qua CI. Bootstrap do admin chạy tay theo `docs/BOOTSTRAP.md`, không chạy thay admin.
 
 ## Quy trình khi sửa code
 
@@ -39,7 +40,7 @@ Không chạy ở local: `pulumi up`, `pulumi destroy`, `pulumi stack output --s
 
 ## Luật cứng
 
-- Stack chỉ khác nhau ở `infra/Pulumi.<stack>.yaml`. Không `if stack == "prod"`.
+- Stack chỉ khác nhau ở `infra/workload/Pulumi.<stack>.yaml`. Không `if stack == "prod"`.
 - Không secret plaintext trong code/yaml/log. Không access key AWS trong CI.
 - Image chỉ tag Git SHA 7 ký tự, không `:latest`. `imageTag` không commit vào yaml.
 - Đổi tên logical resource phải có `pulumi.Aliases`. Preview có `replace`/`delete` resource có state thì dừng lại hỏi.
@@ -53,7 +54,7 @@ Không chạy ở local: `pulumi up`, `pulumi destroy`, `pulumi stack output --s
 | `staging` | `staging` | cần approve (GitHub Environment) |
 | `main` | `prod` | cần approve |
 
-State: S3 `pulumi-state-poc-<account>`, secret mã hoá KMS `alias/pulumi-poc-key`. ECR `poc-app` dùng chung, tạo ngoài stack.
+State workload: S3 `pulumi-state-poc-<account>`, secret mã hoá KMS `alias/pulumi-poc-key`. State bootstrap: S3 `pulumi-bootstrap-poc-<account>` (tạo bằng `scripts/setup-bootstrap-backend.sh`). Bucket state workload, KMS, ECR `poc-app`, OIDC, role CI do bootstrap quản lý.
 
 ## Quy ước
 
