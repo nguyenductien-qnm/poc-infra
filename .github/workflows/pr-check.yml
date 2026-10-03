@@ -1,14 +1,17 @@
 name: "PR Check & Pulumi Preview"
 
+# TẠM TẮT trigger tự động trong lúc chuyển sang bootstrap/workload (chưa up bootstrap).
+# Bật lại: khôi phục khối pull_request bên dưới.
 on:
-  pull_request:
-    branches:
-      - dev
-      - staging
-      - main
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
+  workflow_dispatch:
+#  pull_request:
+#    branches:
+#      - dev
+#      - staging
+#      - main
+#    paths-ignore:
+#      - "**.md"
+#      - "docs/**"
 
 # Push liên tục vào PR: hủy preview cũ, chỉ chạy bản mới nhất
 concurrency:
@@ -54,6 +57,7 @@ jobs:
           go mod tidy -diff
           go vet ./...
           go test ./...
+          go build ./...
 
       - name: "3. Xác thực AWS qua OIDC (Role Preview read-only)"
         uses: aws-actions/configure-aws-credentials@v4
@@ -66,7 +70,7 @@ jobs:
 
       - name: "5. Chạy Pulumi Preview"
         id: pulumi-preview
-        working-directory: ./infra
+        working-directory: ./infra/workload
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           pulumi login "s3://pulumi-state-poc-${ACCOUNT_ID}?region=${AWS_REGION}"
@@ -92,7 +96,7 @@ jobs:
           script: |
             const fs = require('fs');
             const marker = '<!-- pulumi-preview -->';
-            const previewPath = './infra/preview_output.txt';
+            const previewPath = './infra/workload/preview_output.txt';
             let previewContent = 'Không tìm thấy log preview.';
             if (fs.existsSync(previewPath)) {
               previewContent = fs.readFileSync(previewPath, 'utf8');
