@@ -98,6 +98,8 @@ Quy ước: local chỉ chạy `preview` workload, mọi `up` workload đi qua C
 - RDS **single-AZ**, chưa có AWS Backup.
 - Role deploy dùng `AdministratorAccess` cho nhanh; prod thật cần thu hẹp quyền.
 - Task role có `bedrock:InvokeModel` để chứng minh IAM, app không gọi Bedrock.
+- PR preview chạy code của PR (chưa review) bằng role preview có `ReadOnlyAccess` + `kms:Decrypt`. Chấp nhận cho POC để có diff ngay ở PR: chỉ người trong team mở PR, PR từ fork không được GitHub cấp OIDC token. Production nên chặn bằng approval trước khi job preview nhận credentials.
+- Action trong workflow pin theo commit SHA nhưng vẫn ở major cũ (`checkout@v4`, `setup-go@v5`...). Nâng major làm riêng.
 
 ## Dọn dẹp
 
