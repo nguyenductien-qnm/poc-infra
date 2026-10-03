@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+
 	"infra-poc/internal/app"
 	"infra-poc/internal/data"
 	"infra-poc/internal/network"
@@ -23,12 +25,14 @@ func main() {
 		dbInstanceClass := cfg.Require("dbInstanceClass")
 		protectStateful := cfg.RequireBool("protectStateful")
 		deletionProtection := cfg.RequireBool("deletionProtection")
+		ecrRepositoryName := cfg.Require("ecrRepositoryName") // repo do bootstrap quan ly
+		// imageTag do CI set theo Git SHA. Thieu thi dung han, khong tu doi image ve :latest
 		imageTag := cfg.Get("imageTag")
-		if imageTag == "" {
-			imageTag = "latest"
+		if imageTag == "" || imageTag == "latest" {
+			return errors.New(`config imageTag must be a git sha tag set by CI; for local preview run: pulumi config set imageTag "$(pulumi stack output imageTag)"`)
 		}
 
-		// Lay thong tin AWS Account va Region de ghep ECR URL dung chung (poc-app)
+		// Lay thong tin AWS Account va Region de ghep ECR URL dung chung
 		caller, err := aws.GetCallerIdentity(ctx, nil, nil)
 		if err != nil {
 			return err
@@ -41,7 +45,7 @@ func main() {
 		if err != nil {
 			return err
 		}
-		sharedEcrUrl := pulumi.Sprintf("%s.dkr.ecr.%s.amazonaws.com/poc-app", caller.AccountId, region.Name)
+		sharedEcrUrl := pulumi.Sprintf("%s.dkr.ecr.%s.amazonaws.com/%s", caller.AccountId, region.Name, ecrRepositoryName)
 
 		// 2. Network Package
 		netOut, err := network.New(ctx, "network", &network.Args{
@@ -75,7 +79,7 @@ func main() {
 			return err
 		}
 
-		// 5. App Package (ECS Fargate Service tro ECR chung poc-app kem imageTag)
+		// 5. App Package (ECS Fargate Service tro ECR chung kem imageTag)
 		appOut, err := app.New(ctx, "app", &app.Args{
 			Region:             region.Name,
 			EcrRepoUrl:         sharedEcrUrl,
