@@ -46,9 +46,11 @@ Luồng truy cập: Internet → ALB (port 80) → Fargate task (public subnet) 
 | `dbInstanceClass`    | db.t4g.micro | db.t4g.micro | db.t4g.small |
 | `protectStateful`    | false        | false        | true         |
 | `deletionProtection` | false        | false        | true         |
+| `ecrRepositoryName`  | poc-app      | poc-app      | poc-app      |
 
 - `expectedAccount`: account AWS mà stack được phép chạy, lưu dạng secret (mã hoá KMS) để không lộ account ID. Credentials thuộc account khác thì preview/up dừng ngay, chưa tạo gì. Set bằng `pulumi config set --secret expectedAccount <account-id>`.
-- `imageTag` do CI set theo Git SHA (7 ký tự) mỗi lần deploy, không lưu trong `Pulumi.<stack>.yaml`.
+- `imageTag` do CI set theo Git SHA (7 ký tự) mỗi lần deploy, không lưu trong `Pulumi.<stack>.yaml`. Thiếu hoặc bằng `latest` thì preview/up báo lỗi, không tự dùng `:latest`.
+- `ecrRepositoryName`: repo ECR dùng chung, do bootstrap quản lý.
 
 ## CI/CD
 
@@ -82,7 +84,7 @@ OIDC provider, các role và policy preview do project bootstrap quản lý (pac
 cd infra/workload
 pulumi login "s3://pulumi-state-poc-<account>?region=ap-southeast-1"
 pulumi stack select dev
-# Dùng image đang chạy, nếu không preview sẽ đổi image về :latest
+# Bắt buộc: dùng image đang chạy (thiếu imageTag thì preview báo lỗi)
 pulumi config set imageTag "$(pulumi stack output imageTag)"
 pulumi preview
 ```

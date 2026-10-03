@@ -68,4 +68,4 @@ Gặp lỗi mới đáng nhớ thì thêm một dòng.
 - `rds.Instance.Endpoint` là `host:port`; host thuần là `Address`.
 - Secret RDS managed là JSON `{"username","password"}`; ECS lấy key bằng `valueFrom: <arn>:password::`.
 - Đổi `Description` của Security Group gây replace SG.
-- Preview mà không set `imageTag` sẽ diff đổi image về `:latest`.
+- Preview mà không set `imageTag` sẽ báo lỗi (code không còn fallback `:latest`).
