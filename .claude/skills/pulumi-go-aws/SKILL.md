@@ -169,7 +169,7 @@ Policy: args.SecretArn.ToStringOutput().ApplyT(func(arn string) string {
 2. Viết theo quy tắc + mẫu.
 3. Kiểm tra:
    ```bash
-   cd infra && go mod tidy -diff && go vet ./... && go test ./... && go build -o /dev/null .
+   cd infra && go mod tidy -diff && go vet ./... && go test ./... && go build ./...
    ```
 4. `pulumi preview --diff` trên stack dev nếu có credential. Giữ nguyên các giá trị CI set (vd image tag hiện tại lấy từ `pulumi stack output`) để diff chỉ phản ánh thay đổi hạ tầng. **Không `pulumi up`/`destroy` từ máy local** trên stack dùng chung: `up` đi qua CI.
 5. Cập nhật README (bảng config, kiến trúc) khi đổi hành vi.

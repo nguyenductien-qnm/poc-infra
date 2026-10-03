@@ -123,14 +123,12 @@ pulumi preview
 ## 3. Thiết lập CI/CD (GitHub Actions + OIDC)
 
 ### Bước 12: Tạo OIDC provider và 6 IAM role cho CI
-```bash
-bash scripts/setup-ci-roles.sh nguyenductien-qnm poc-infra
-# Repo private: GITHUB_OWNER_ID=... GITHUB_REPO_ID=... bash scripts/setup-ci-roles.sh
-```
+Ban đầu tạo bằng script `scripts/setup-ci-roles.sh`. **Đã thay** bằng project Pulumi `infra/bootstrap` (package `ciiam`), các role đang có được import vào. Script cũ đổi thành `scripts/setup-bootstrap-backend.sh`, chỉ tạo bucket lưu state của bootstrap. Xem [BOOTSTRAP.md](BOOTSTRAP.md).
+
 Trust policy dùng `StringEquals` với OIDC `sub` dạng immutable `repo:<owner>@<owner_id>/<repo>@<repo_id>:...` (repo tạo sau 15/07/2026). Role deploy tin `environment:<env>`, role preview tin `pull_request`.
 
 ### Bước 13: Cấu hình GitHub repo
-- **Secrets** (Settings > Secrets and variables > Actions): `AWS_ROLE_DEV_PREVIEW`, `AWS_ROLE_DEV_DEPLOY`, `AWS_ROLE_STAGING_PREVIEW`, `AWS_ROLE_STAGING_DEPLOY`, `AWS_ROLE_PROD_PREVIEW`, `AWS_ROLE_PROD_DEPLOY` (ARN in ra cuối script).
+- **Secrets** (Settings > Secrets and variables > Actions): `AWS_ROLE_DEV_PREVIEW`, `AWS_ROLE_DEV_DEPLOY`, `AWS_ROLE_STAGING_PREVIEW`, `AWS_ROLE_STAGING_DEPLOY`, `AWS_ROLE_PROD_PREVIEW`, `AWS_ROLE_PROD_DEPLOY` (ARN lấy từ output `previewRoleArns` / `deployRoleArns` của stack bootstrap).
 - **Environments** (Settings > Environments): tạo `dev`, `staging`, `prod`. Bật *Required reviewers* cho `staging` và `prod`; giới hạn deployment branch `main` cho `prod`.
 
 ### Bước 14: Kiểm tra flow
