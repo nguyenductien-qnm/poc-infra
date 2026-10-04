@@ -82,11 +82,21 @@ class PackTests(unittest.TestCase):
         self.assertIsNone(pack.hook(self.root, "claude", external))
 
     def test_codex_patch_delete_and_move_paths(self):
-        patch = "*** Begin Patch\n*** Delete File: notes.txt\n*** Update File: infra/a.go\n*** Move to: infra/b.go\n*** End Patch"
-        for inputs in (patch, {"input": patch}, {"patch": patch}, {"command": patch}):
-            payload = self.payload("PostToolUse", tool_name="apply_patch", tool_input=inputs)
-            self.assertEqual(["notes.txt", "infra/a.go", "infra/b.go"], pack.changed_paths(payload, "codex"))
-            self.assertIsNotNone(pack.hook(self.root, "codex", payload))
+        for newline in ("\n", "\r\n"):
+            patch = newline.join(("*** Begin Patch", "*** Delete File: notes.txt",
+                                  "*** Update File: infra/a.go", "*** Move to: infra/b.go", "*** End Patch"))
+            for inputs in (patch, {"input": patch}, {"patch": patch}, {"command": patch}):
+                with self.subTest(newline=newline, inputs=type(inputs).__name__):
+                    payload = self.payload("PostToolUse", tool_name="apply_patch", tool_input=inputs)
+                    self.assertEqual(["notes.txt", "infra/a.go", "infra/b.go"], pack.changed_paths(payload, "codex"))
+                    self.assertIsNotNone(pack.hook(self.root, "codex", payload))
+            for path in ("README.md", "scripts/verify-pulumi-pack.py", "scripts/test_pulumi_pack.py"):
+                patch = newline.join(("*** Begin Patch", f"*** Update File: {path}", "@@", "-old", "+new", "*** End Patch"))
+                payload = self.payload("PostToolUse", tool_name="apply_patch", tool_input={"command": patch})
+                with self.subTest(newline=newline, path=path):
+                    output = pack.hook(self.root, "codex", payload)
+                    self.assertIsNotNone(output)
+                    self.assertIn("stale", output["hookSpecificOutput"]["additionalContext"])
 
     def test_unsupported_payload_and_budget_never_pass(self):
         for payload in (None, [], {}, self.payload("Stop"), self.payload("PostToolUse", tool_name="Edit", tool_input={})):
@@ -115,6 +125,27 @@ class PackTests(unittest.TestCase):
         result = subprocess.run(command, shell=True, cwd=subdir, input=stdin, capture_output=True, timeout=5)
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("hookSpecificOutput", json.loads(result.stdout))
+        for cwd, path, relevant in (
+            (self.root, "notes.txt", False),
+            (self.root, "app/native hook.txt", True),
+            (self.root, "README.md", True),
+            (subdir, "../../notes.txt", False),
+            (subdir, "../../app/native hook.txt", True),
+            (subdir, "../../scripts/verify-pulumi-pack.py", True),
+        ):
+            post_input = json.dumps(self.payload(
+                "PostToolUse", cwd=str(cwd), tool_name="apply_patch",
+                tool_input={"command": f"*** Begin Patch\r\n*** Add File: {path}\r\n+smoke\r\n*** End Patch"},
+            )).encode()
+            with self.subTest(cwd=cwd, path=path):
+                result = subprocess.run(command, shell=True, cwd=cwd, input=post_input, capture_output=True, timeout=5)
+                self.assertEqual(0, result.returncode, result.stderr)
+                if relevant:
+                    output = json.loads(result.stdout)["hookSpecificOutput"]
+                    self.assertEqual("PostToolUse", output["hookEventName"])
+                    self.assertIn("stale", output["additionalContext"])
+                else:
+                    self.assertEqual(b"", result.stdout)
         claude = json.loads((self.root / ".claude/settings.json").read_text())["hooks"]["SessionStart"][0]["hooks"][0]
         argv = [claude["command"], *claude["args"]]
         # Claude sets CLAUDE_PROJECT_DIR to the launch directory, even below root.

@@ -115,7 +115,7 @@ Yêu cầu Git và Python **3.11+**, không thêm pip dependency. Trên Windows 
 
 Start phiên mới từ checkout. Codex cần trust project `.codex` rồi mở `/hooks`, đọc hai command và trust đúng definition; hook thay đổi cần review lại. Claude đọc project `.claude/settings.json` sau project trust; kiểm tra `/hooks` và bảo đảm hooks không bị disabled trong settings của bạn. Nếu mở Claude từ thư mục con, truyền `--settings "<repo-root>/.claude/settings.json"`: bản CLI đã thử không tự load hook ở root trong trường hợp này. Không tự persist trust hoặc dùng sandbox/approval bypass để nghiệm thu. Gọi reviewer bằng tên đầy đủ trong yêu cầu; adapter không tự đổi model/effort người dùng đã chọn.
 
-SessionStart chạy verifier tĩnh; PostToolUse chỉ nhận Edit/Write (Codex thêm apply_patch), lọc file thuộc pack/infra/app/workflows rồi check nhẹ và nhắc checks/review cũ có thể stale. Không build/test toàn repo mỗi edit, không format hoặc cloud writes. Shell, MCP, editor ngoài runtime và tool payload chưa hỗ trợ không được cover; chạy verifier thủ công trước bàn giao:
+SessionStart chạy verifier tĩnh; PostToolUse chỉ nhận Edit/Write (Codex thêm apply_patch), lọc file thuộc pack/infra/app/workflows rồi check nhẹ và nhắc checks/review cũ có thể stale. Header apply_patch nhận cả LF và CRLF, kể cả file scope liệt kê riêng như README và scripts verifier. Không build/test toàn repo mỗi edit, không format hoặc cloud writes. Shell, MCP, editor ngoài runtime và tool payload chưa hỗ trợ không được cover; chạy verifier thủ công trước bàn giao:
 
 ```bash
 python -B scripts/verify-pulumi-pack.py

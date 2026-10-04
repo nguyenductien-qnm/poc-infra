@@ -173,7 +173,7 @@ def changed_paths(payload, runtime):
         patch = inputs if isinstance(inputs, str) else next(
             (inputs.get(key) for key in ("input", "patch", "command") if isinstance(inputs.get(key), str)), ""
         ) if isinstance(inputs, dict) else ""
-        paths = re.findall(r"^\*\*\* (?:Add File:|Update File:|Delete File:|Move to:) (.+)$", patch, re.M)
+        paths = re.findall(r"^\*\*\* (?:Add File:|Update File:|Delete File:|Move to:) ([^\r\n]+)\r?$", patch, re.M)
         if paths:
             return paths
     raise ValueError("edit payload not supported; checks not verified, run manual verifier")
