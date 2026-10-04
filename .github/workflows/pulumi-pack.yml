@@ -1,0 +1,44 @@
+name: Pulumi Pack Checks
+
+on:
+  pull_request:
+    paths:
+      - '.agents/**'
+      - '.claude/**'
+      - '.codex/**'
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'README.md'
+      - 'docs/BOOTSTRAP.md'
+      - 'scripts/verify-pulumi-pack.py'
+      - 'scripts/test_pulumi_pack.py'
+      - '.github/workflows/**'
+  push:
+    branches: [main]
+    paths:
+      - '.agents/**'
+      - '.claude/**'
+      - '.codex/**'
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'README.md'
+      - 'docs/BOOTSTRAP.md'
+      - 'scripts/verify-pulumi-pack.py'
+      - 'scripts/test_pulumi_pack.py'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  pack:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Verify pack and hook mechanisms (Python 3.11+)
+        run: |
+          python -B scripts/verify-pulumi-pack.py
+          python -B -m unittest discover -s scripts -p test_pulumi_pack.py -v
