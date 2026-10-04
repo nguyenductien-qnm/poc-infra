@@ -1,0 +1,32 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/verify-pulumi-pack.py\" --hook codex",
+            "commandWindows": "for /f \"delims=\" %r in ('git rev-parse --show-toplevel') do @python \"%r/scripts/verify-pulumi-pack.py\" --hook codex",
+            "timeout": 5,
+            "additionalContextLimit": 600
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(apply_patch|Edit|Write)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/verify-pulumi-pack.py\" --hook codex",
+            "commandWindows": "for /f \"delims=\" %r in ('git rev-parse --show-toplevel') do @python \"%r/scripts/verify-pulumi-pack.py\" --hook codex",
+            "timeout": 5,
+            "additionalContextLimit": 600
+          }
+        ]
+      }
+    ]
+  }
+}
