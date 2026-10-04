@@ -4,7 +4,7 @@ Khi sửa env, image, health hoặc data wiring, đọc `app/main.go`, Dockerfil
 
 | Giá trị | Nơi phải khớp |
 | --- | --- |
-| Port 8080, `/health` | HTTP app, ECS container port, target group/health path |
+| Port 80 (`shared.AppPort`), `/health` | HTTP app, ECS container port, target group/health path |
 | DB host/port/name/user | `data/rds.go`, `app/service.go`, app DSN; `Address` là host, `Endpoint` có port |
 | DB password | ECS `valueFrom` dùng ARN + JSON selector `:password::`; execution role đọc đúng secret |
 | ECR URL/imageTag | Bootstrap repository, workload config, build/push workflow; tag bắt buộc, không `latest` |

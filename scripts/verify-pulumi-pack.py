@@ -55,7 +55,7 @@ def verify(root, budget=2.0):
         check_time()
         try:
             callback(read(root / path))
-        except (OSError, ValueError, KeyError, TypeError) as error:
+        except (OSError, ValueError, KeyError, TypeError, re.error) as error:
             note(path, str(error))
 
     required = [PACK / "SKILL.md", Path("AGENTS.md"), Path("CLAUDE.md")]
@@ -219,7 +219,7 @@ def main():
         findings = verify(root)
         print("\n".join(findings) if findings else "Pulumi pack local static checks passed (no cloud operations).")
         return int(bool(findings))
-    except (OSError, ValueError, KeyError, TypeError, TimeoutError) as error:
+    except (OSError, ValueError, KeyError, TypeError, TimeoutError, re.error) as error:
         # Khong in payload, code hay secret tu tool_input.
         message = f"Pulumi pack verification incomplete: {type(error).__name__}; run manual verifier and inspect local config."
         if args.hook:
