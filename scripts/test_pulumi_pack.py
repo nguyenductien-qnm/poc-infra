@@ -34,6 +34,15 @@ class PackTests(unittest.TestCase):
     def payload(self, event="SessionStart", **extra):
         return {"hook_event_name": event, "cwd": str(self.root), **extra}
 
+    def command_runners(self, command):
+        runners = [(command, True)]
+        if os.name == "nt":
+            # Codex dung shell cua session, khong mac dinh cmd.exe.
+            for shell in ("powershell.exe", "pwsh.exe"):
+                if shutil.which(shell):
+                    runners.append(([shell, "-NoProfile", "-NonInteractive", "-Command", command], False))
+        return runners
+
     def test_checkout_links_and_adapters(self):
         self.assertEqual([], pack.verify(self.root))
 
@@ -122,9 +131,11 @@ class PackTests(unittest.TestCase):
         stdin = json.dumps(self.payload(cwd=str(subdir))).encode()
         codex = json.loads((self.root / ".codex/hooks.json").read_text())["hooks"]["SessionStart"][0]["hooks"][0]
         command = codex["commandWindows" if os.name == "nt" else "command"]
-        result = subprocess.run(command, shell=True, cwd=subdir, input=stdin, capture_output=True, timeout=5)
-        self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn("hookSpecificOutput", json.loads(result.stdout))
+        for argv, use_shell in self.command_runners(command):
+            with self.subTest(shell=argv):
+                result = subprocess.run(argv, shell=use_shell, cwd=subdir, input=stdin, capture_output=True, timeout=5)
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertIn("hookSpecificOutput", json.loads(result.stdout))
         for cwd, path, relevant in (
             (self.root, "notes.txt", False),
             (self.root, "app/native hook.txt", True),
@@ -137,15 +148,16 @@ class PackTests(unittest.TestCase):
                 "PostToolUse", cwd=str(cwd), tool_name="apply_patch",
                 tool_input={"command": f"*** Begin Patch\r\n*** Add File: {path}\r\n+smoke\r\n*** End Patch"},
             )).encode()
-            with self.subTest(cwd=cwd, path=path):
-                result = subprocess.run(command, shell=True, cwd=cwd, input=post_input, capture_output=True, timeout=5)
-                self.assertEqual(0, result.returncode, result.stderr)
-                if relevant:
-                    output = json.loads(result.stdout)["hookSpecificOutput"]
-                    self.assertEqual("PostToolUse", output["hookEventName"])
-                    self.assertIn("stale", output["additionalContext"])
-                else:
-                    self.assertEqual(b"", result.stdout)
+            for argv, use_shell in self.command_runners(command):
+                with self.subTest(shell=argv, cwd=cwd, path=path):
+                    result = subprocess.run(argv, shell=use_shell, cwd=cwd, input=post_input, capture_output=True, timeout=5)
+                    self.assertEqual(0, result.returncode, result.stderr)
+                    if relevant:
+                        output = json.loads(result.stdout)["hookSpecificOutput"]
+                        self.assertEqual("PostToolUse", output["hookEventName"])
+                        self.assertIn("stale", output["additionalContext"])
+                    else:
+                        self.assertEqual(b"", result.stdout)
         claude = json.loads((self.root / ".claude/settings.json").read_text())["hooks"]["SessionStart"][0]["hooks"][0]
         argv = [claude["command"], *claude["args"]]
         # Claude sets CLAUDE_PROJECT_DIR to the launch directory, even below root.
@@ -158,10 +170,13 @@ class PackTests(unittest.TestCase):
         config = json.loads((self.root / ".codex/hooks.json").read_text())
         handler = config["hooks"]["SessionStart"][0]["hooks"][0]
         command = handler["commandWindows" if os.name == "nt" else "command"]
-        command = command.replace("@python ", "@pulumi-pack-python-not-installed ") if os.name == "nt" else command.replace("python3 ", "pulumi-pack-python-not-installed ")
-        result = subprocess.run(command, shell=True, cwd=self.root, input=json.dumps(self.payload()).encode(), capture_output=True, timeout=5)
-        self.assertNotEqual(0, result.returncode)
-        self.assertNotIn(b"hookSpecificOutput", result.stdout)
+        interpreter = "python " if os.name == "nt" else "python3 "
+        command = command.replace(interpreter, "pulumi-pack-python-not-installed ", 1)
+        for argv, use_shell in self.command_runners(command):
+            with self.subTest(shell=argv):
+                result = subprocess.run(argv, shell=use_shell, cwd=self.root, input=json.dumps(self.payload()).encode(), capture_output=True, timeout=5)
+                self.assertNotEqual(0, result.returncode)
+                self.assertNotIn(b"hookSpecificOutput", result.stdout)
 
     def test_related_edit_reports_failure_but_unrelated_is_silent(self):
         (self.root / ".codex/agents/pulumi-component-reviewer.toml").unlink()
