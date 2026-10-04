@@ -15,6 +15,7 @@ MAX_BYTES = 65536
 LINK = re.compile(r"\[[^\]]+\]\(([^\s)]+)\)")
 CODEX_COMMAND = 'python3 "$(git rev-parse --show-toplevel)/scripts/verify-pulumi-pack.py" --hook codex'
 CODEX_WINDOWS = 'for /f "delims=" %r in (\'git rev-parse --show-toplevel\') do @python "%r/scripts/verify-pulumi-pack.py" --hook codex'
+CLAUDE_LAUNCHER = "import runpy,subprocess,sys;from pathlib import Path;root=Path(subprocess.check_output(['git','rev-parse','--show-toplevel'],text=True,timeout=2).strip());sys.argv[0]=str(root/'scripts/verify-pulumi-pack.py');runpy.run_path(sys.argv[0],run_name='__main__')"
 
 
 def read(path):
@@ -139,7 +140,7 @@ def verify(root, budget=2.0):
                 raise ValueError("expected command handler with five-second timeout")
             if runtime == "claude":
                 if handler.get("command") != "python" or handler.get("args") != [
-                    "${CLAUDE_PROJECT_DIR}/scripts/verify-pulumi-pack.py", "--hook", "claude"
+                    "-c", CLAUDE_LAUNCHER, "--hook", "claude"
                 ]:
                     raise ValueError("Claude hook command/args drift")
             else:

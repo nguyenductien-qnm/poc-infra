@@ -116,8 +116,9 @@ class PackTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("hookSpecificOutput", json.loads(result.stdout))
         claude = json.loads((self.root / ".claude/settings.json").read_text())["hooks"]["SessionStart"][0]["hooks"][0]
-        argv = [claude["command"], *[arg.replace("${CLAUDE_PROJECT_DIR}", str(self.root)) for arg in claude["args"]]]
-        result = subprocess.run(argv, cwd=subdir, input=stdin, capture_output=True, timeout=5)
+        argv = [claude["command"], *claude["args"]]
+        # Claude sets CLAUDE_PROJECT_DIR to the launch directory, even below root.
+        result = subprocess.run(argv, cwd=subdir, env={**os.environ, "CLAUDE_PROJECT_DIR": str(subdir)}, input=stdin, capture_output=True, timeout=5)
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("hookSpecificOutput", json.loads(result.stdout))
 
