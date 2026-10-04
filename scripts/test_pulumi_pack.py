@@ -37,7 +37,7 @@ class PackTests(unittest.TestCase):
     def command_runners(self, command):
         runners = [(command, True)]
         if os.name == "nt":
-            # Codex dung shell cua session, khong mac dinh cmd.exe.
+            # Codex uses the session shell, which is not necessarily cmd.exe.
             for shell in ("powershell.exe", "pwsh.exe"):
                 if shutil.which(shell):
                     runners.append(([shell, "-NoProfile", "-NonInteractive", "-Command", command], False))

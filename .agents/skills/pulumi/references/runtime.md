@@ -1,15 +1,15 @@
 # App ↔ ECS/RDS contract
 
-Khi sửa env, image, health hoặc data wiring, đọc `app/main.go`, Dockerfile và `infra/internal/{app,platform,data}`. [Current contract](current-contract.md) giữ ngoại lệ PoC rõ ràng.
+When changing environment variables, images, health checks or data wiring, read `app/main.go`, the Dockerfile and `infra/internal/{app,platform,data}`. The [current contract](current-contract.md) records the PoC exceptions explicitly.
 
-| Giá trị | Nơi phải khớp |
+| Value | Where it must match |
 | --- | --- |
 | Port 80 (`shared.AppPort`), `/health` | HTTP app, ECS container port, target group/health path |
-| DB host/port/name/user | `data/rds.go`, `app/service.go`, app DSN; `Address` là host, `Endpoint` có port |
-| DB password | ECS `valueFrom` dùng ARN + JSON selector `:password::`; execution role đọc đúng secret |
-| ECR URL/imageTag | Bootstrap repository, workload config, build/push workflow; tag bắt buộc, không `latest` |
-| Logging/platform | stdout/awslogs, Docker `linux/amd64` và Fargate task |
+| DB host/port/name/user | `data/rds.go`, `app/service.go`, app DSN; `Address` is the host, while `Endpoint` includes the port |
+| DB password | ECS `valueFrom` uses the ARN + JSON selector `:password::`; the execution role reads the correct secret |
+| ECR URL/imageTag | Bootstrap repository, workload config, build/push workflow; a tag is required and cannot be `latest` |
+| Logging/platform | stdout/awslogs, Docker `linux/amd64` and the Fargate task |
 
-Không fetch password để kiểm tra wiring. Tracing/build chỉ chứng minh contract cục bộ, chưa chứng minh DB connection hoặc ECS healthy. Pilot #20 cần DB connection hoặc round-trip có cleanup; `/health` 200 không đủ.
+Do not fetch passwords to check wiring. Tracing/build only verifies the local contract, not DB connectivity or ECS health. Pilot #20 requires a DB connection or a round-trip with cleanup; `/health` returning 200 is insufficient.
 
-Private tasks/TLS, DB encryption/backup/Multi-AZ/protection, bỏ demo Bedrock và deployment rollback đã hoãn. Khi có task production, đề xuất config đơn giản có consumer và tác dụng thật; tránh lẫn proposal với behavior hiện tại.
+Private tasks/TLS, DB encryption/backup/Multi-AZ/protection, removing the Bedrock demo and deployment rollback are deferred. For production work, propose simple config with an actual consumer and effect; distinguish proposed changes from current behavior.

@@ -221,7 +221,7 @@ def main():
         print("\n".join(findings) if findings else "Pulumi pack local static checks passed (no cloud operations).")
         return int(bool(findings))
     except (OSError, ValueError, KeyError, TypeError, TimeoutError, re.error) as error:
-        # Khong in payload, code hay secret tu tool_input.
+        # Never print payloads, code or secrets from tool_input.
         message = f"Pulumi pack verification incomplete: {type(error).__name__}; run manual verifier and inspect local config."
         if args.hook:
             print(json.dumps({"systemMessage": message}))

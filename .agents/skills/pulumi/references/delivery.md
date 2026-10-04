@@ -1,12 +1,12 @@
-# Bootstrap, state và delivery
+# Bootstrap, state and delivery
 
-Đọc `infra/bootstrap/main.go`, `bootstrap/internal/{statebackend,registry,ciiam}` và workflow thật. [Current contract](current-contract.md) phân biệt PoC với production backlog.
+Read `infra/bootstrap/main.go`, `bootstrap/internal/{statebackend,registry,ciiam}` and the actual workflows. The [current contract](current-contract.md) distinguishes the PoC from the production backlog.
 
-- Bootstrap quản lý workload state S3, secrets KMS, ECR và CI OIDC/IAM; admin theo [BOOTSTRAP.md](../../../../docs/BOOTSTRAP.md). Bootstrap backend S3 do script tạo là ngoại lệ đã chốt. Một KMS key dùng chung; object SSE-S3 khác secrets encryption KMS.
-- Import mode dành cho resources đang có; sau tiếp nhận review việc tắt `importExisting`. Không chạy import/up để thử pack; không xuất checkpoint, secret hoặc decrypt output vào log/artifact.
-- State bucket/key/ECR protect/retain theo code. Tách project không hạn chế Admin workload CI. Trace OIDC `aud`/`sub`, repo identity và branch/environment từ config đến roles; không mở trust wildcard hoặc chuyển roles về script.
-- Preview nhận OIDC cho PR và branch, có state permissions cần cho CLI và KMS decrypt. Đây vẫn là PoC risk, không suy luận fork rules là IAM enforcement. Secret schema dùng metadata/code hoặc fixture không nhạy cảm; không GetSecretValue chỉ để xem keys.
-- Deploy hiện preview tag mới → environment approval (khi đã cấu hình) → build/push tag SHA ngắn → up. Chưa build image tại preview, chưa bind digest/artifact hoặc state freshness. Không báo cùng SHA là artifact đã duyệt hoặc protections đã bật.
-- Actions remote pin full commit SHA, giữ major hiện có. Không đổi workflow triggers, permissions hoặc GitHub settings để thử pack.
+- Bootstrap manages workload state S3, secrets KMS, ECR and CI OIDC/IAM; admins follow [BOOTSTRAP.md](../../../../docs/BOOTSTRAP.md). The script-created bootstrap S3 backend is an accepted exception. One KMS key is shared; object SSE-S3 is distinct from KMS secret encryption.
+- Import mode is for existing resources; review disabling `importExisting` after adoption. Do not run import/up to test the pack or write checkpoints, secrets or decrypted output to logs/artifacts.
+- State bucket/key/ECR protection and retention follow the code. Project separation does not constrain workload CI with Admin permissions. Trace OIDC `aud`/`sub`, repo identity and branch/environment from config to roles; do not introduce wildcard trust or move roles back to scripts.
+- Preview receives OIDC for PRs and branches, state permissions needed by the CLI, and KMS decrypt. This remains a PoC risk; do not infer IAM enforcement from fork rules. Check secret schemas through metadata/code or nonsensitive fixtures; do not call GetSecretValue merely to inspect keys.
+- Deployment currently follows new-tag preview → environment approval (when configured) → build/push short SHA tag → up. The image is not built at preview; digest/artifact binding and state freshness are not enforced. Do not claim that the same SHA proves artifact approval or that protections are enabled.
+- Remote Actions use full commit SHA pins at their current major versions. Do not change workflow triggers, permissions or GitHub settings to test the pack.
 
-Production delivery là task riêng: build một lần trước preview, digest/config/SHA cùng apply, deny stale artifacts/state, least privilege/boundary và protections thật. Không biến chúng thành gate bắt buộc của PoC pack.
+Production delivery is separate work: build once before preview, use the same digest/config/SHA for apply, reject stale artifacts/state, and establish least privilege/boundaries and actual protections. Do not make these mandatory PoC pack gates.

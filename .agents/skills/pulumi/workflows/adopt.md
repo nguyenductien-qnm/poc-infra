@@ -1,8 +1,8 @@
 # Adopt
 
-1. Đọc current contract, root/config/package và quyết định owner mới nhất. Xác định account/region/env, owner backend/network/ECR/data, CI identity và capability cần. Input thiếu ghi pending, chỉ hỏi phần chặn công việc; không điền account/ARN thật.
-2. Network mới: bám `network.New` và composition hiện có; đề xuất config, project/resource owner và diff nhỏ nhất. `expectedAccount` qua secret config của operator, không commit plaintext; giữ image đang chạy cho preview hạ tầng.
-3. Network có sẵn: báo **chưa hỗ trợ trong PoC hiện tại** theo #15; liệt kê VPC/subnets/SG và ownership cần bàn giao, đề xuất task riêng nếu user muốn. Không tạo lại network hoặc bịa constructor ExistingVpcID. Import không đồng nghĩa consume external network.
-4. Đề xuất local checks và authorized preview. Bootstrap admin và workload CI theo quy trình hiện có; không tự deploy/pilot. Production request chỉ nêu quyết định deferred liên quan, không thêm mọi dịch vụ dự phòng.
+1. Read the current contract, root/config/package and latest owner decisions. Identify account/region/environment, backend/network/ECR/data owners, CI identity and required capabilities. Mark missing inputs pending and ask only about blockers; do not fill in real account IDs/ARNs.
+2. New network: follow `network.New` and the existing composition; propose config, project/resource owners and the smallest diff. The operator supplies `expectedAccount` through secret config; do not commit it in plaintext. Keep the running image for infrastructure previews.
+3. Existing network: report **unsupported by the current PoC** under #15; list the required VPC/subnet/security-group inputs and ownership handoff, and propose separate work if requested. Do not recreate the network or invent an ExistingVpcID constructor. Importing is not equivalent to consuming an external network.
+4. Propose local checks and an authorized preview. Follow the existing bootstrap-admin and workload-CI processes; do not deploy/run a pilot automatically. For production requests, identify only relevant deferred decisions rather than adding every possible service.
 
-Output: composition/config đề xuất, nơi sửa, ownership/prerequisites, check plan và unknowns. Go snippet dùng API thực tế hoặc ghi rõ proposal chưa implement. Reviewer khi ownership/identity/delivery có rủi ro; docs đơn giản tự review.
+Output: proposed composition/config, edit locations, ownership/prerequisites, check plan and unknowns. Go snippets must use actual APIs or be clearly marked as unimplemented proposals. Use a reviewer for ownership/identity/delivery risks; simple docs can use self-review.

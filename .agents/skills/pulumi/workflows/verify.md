@@ -1,16 +1,16 @@
 # Verify
 
-Đọc diff, current contract và implementation liên quan. Primary chạy checks; reviewer nhận scope, diff/base, file liên quan, kết quả checks và phần thiếu evidence.
+Read the diff, current contract and relevant implementation. The primary runs checks; the reviewer receives the scope, diff/base, relevant files, check results and missing evidence.
 
-## Checks theo thay đổi
+## Checks by change
 
-- Pack/adapters/hooks: ở repo root, `python -B scripts/verify-pulumi-pack.py`, rồi `python -B -m unittest discover -s scripts -p test_pulumi_pack.py`. Không AWS, không Go build.
-- Go infra: trong `infra/`, `go mod tidy -diff`, `go vet ./...`, `go test ./...`, `go build ./...`.
-- App hoặc app↔infra: trong `app/`, `go mod tidy -diff`, `go vet ./...`, `go test ./...`, `go build -o <temporary-path-outside-repo> .`; kiểm tra env/port/secret/image bên task definition. Docker build khi đổi container và runtime có sẵn.
-- Authorized workload preview: operator chọn backend/stack/imageTag trước; primary chạy `pulumi preview --diff` khi task cho phép. Không mặc định đọc live state, đổi config hoặc dispatch workflow để verify. Không up/destroy/import/refresh hoặc bypass gate. Thiếu live checks ghi unknown, không thay bằng mocks rồi báo pass.
+- Pack/adapters/hooks: at the repository root, run `python -B scripts/verify-pulumi-pack.py`, then `python -B -m unittest discover -s scripts -p test_pulumi_pack.py`. No AWS calls or Go build.
+- Go infrastructure: in `infra/`, run `go mod tidy -diff`, `go vet ./...`, `go test ./...` and `go build ./...`.
+- App or app-to-infrastructure changes: in `app/`, run `go mod tidy -diff`, `go vet ./...`, `go test ./...` and `go build -o <temporary-path-outside-repo> .`; check environment variables/ports/secrets/images in the task definition. Build the Docker image when the container changes and a runtime is available.
+- Authorized workload preview: the operator selects backend/stack/imageTag first; the primary runs `pulumi preview --diff` when the task permits it. Do not read live state, change config or dispatch workflows by default to verify. Do not run up/destroy/import/refresh or bypass gates. Report missing live checks as unknown; do not replace them with mocks and claim a pass.
 
 ## Review
 
-Args/Outputs/identity/ownership → `pulumi-component-reviewer`; backend/IAM/workflow → `pulumi-delivery-reviewer`. Gọi bằng tên agent trong runtime và cung cấp local results; mặc định một người. Hai risk độc lập mới cần cả hai. Không có subagents thì tự review và ghi rõ; primary kiểm tra findings trước sửa.
+Args/Outputs/identity/ownership → `pulumi-component-reviewer`; backend/IAM/workflow → `pulumi-delivery-reviewer`. Invoke the agent by its runtime name and provide local results; default to one reviewer. Use both only for two independent risks. If subagents are unavailable, perform and disclose self-review; the primary validates findings before editing.
 
-Output: `pass | changes-requested | blocked`, scope/commit, checks thật (lệnh + kết quả), findings với file:line/scenario và unknowns. Pass chỉ cho scope đã kiểm chứng, không là production approval. Hook nhắc stale không đồng nghĩa check đã chạy. Không tạo reports/evidence lớn trong repo.
+Output: `pass | changes-requested | blocked`, scope/commit, actual checks (commands + results), findings with file:line/scenario, and unknowns. A pass applies only to the verified scope and is not production approval. A stale-check reminder does not mean checks ran. Do not create large reports/evidence in the repository.
