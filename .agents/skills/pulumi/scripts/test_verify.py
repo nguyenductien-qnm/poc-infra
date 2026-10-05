@@ -131,6 +131,22 @@ class PortablePackTests(unittest.TestCase):
                 self.assertIsNotNone(output)
                 self.assertIn("stale", output["hookSpecificOutput"]["additionalContext"])
 
+    def test_only_pack_edits_rerun_pack_checks(self):
+        self.install("claude")
+        (self.pack / "references" / "delivery.md").unlink()
+        infra = self.module.hook(
+            self.pack, "claude",
+            self.payload("PostToolUse", tool_name="Edit", tool_input={"file_path": "platform/live/main.go"}), self.repo,
+        )
+        self.assertNotIn("failed", infra["hookSpecificOutput"]["additionalContext"])
+        for relative in (".agents/skills/pulumi/SKILL.md", ".claude/settings.json"):
+            with self.subTest(relative=relative):
+                pack = self.module.hook(
+                    self.pack, "claude",
+                    self.payload("PostToolUse", tool_name="Edit", tool_input={"file_path": relative}), self.repo,
+                )
+                self.assertIn("failed", pack["hookSpecificOutput"]["additionalContext"])
+
     def test_app_module_is_silent_and_mixed_patch_is_relevant(self):
         self.install("codex")
         for relative in ("service/main.go", "service/go.mod"):
