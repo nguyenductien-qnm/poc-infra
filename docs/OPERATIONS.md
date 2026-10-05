@@ -138,6 +138,29 @@ Ghi lại lý do và đưa thay đổi hợp lệ về code qua PR.
 | Khôi phục state                                                  | S3 có versioning. Sao lưu state hiện tại trước, rồi đối chiếu resource. State cũ không phải rollback hạ tầng                                        |
 | CI/OIDC lỗi                                                      | Kiểm tra `sub`, environment, secret ARN. Với bootstrap xem "Bị khoá thì làm gì"                                                                     |
 
+## Skill Pulumi cho trợ lý AI
+
+Repo có một skill dùng cho trợ lý AI (Claude Code, Codex) khi làm việc với hạ tầng Pulumi Go. Skill chỉ hỗ trợ người viết code và review; **không nằm trong luồng CI/CD** và không đụng tới AWS. Nguồn ở [`.agents/skills/pulumi`](../.agents/skills/pulumi/README.md) (viết bằng tiếng Anh), `.claude/` và `.codex/` chỉ là adapter.
+
+**Dùng thế nào**
+- Claude: `/pulumi adopt ...` hoặc `/pulumi verify ...`. Codex: `$pulumi adopt ...` hoặc `$pulumi verify ...`.
+- `adopt`: thiết kế hoặc triển khai thay đổi hạ tầng (resource nào tạo mới, dùng lại, hay import), rồi tự chạy `verify`.
+- `verify`: kiểm tra thay đổi trong `infra/` (`gofmt`, `go vet`, `go build`, `go test`, và `pulumi preview` chỉ khi bạn cho phép).
+- Hai reviewer chỉ đọc, dùng cho thay đổi quan trọng: `pulumi-component-reviewer` (cấu trúc, ownership, identity của resource, nguy cơ replace/delete ngoài ý muốn) và `pulumi-delivery-reviewer` (state, secret, role CI, đường từ commit tới preview, approval, apply).
+
+**Nguyên tắc skill luôn giữ:** không để secret, token, account ID, ARN dạng plaintext; không tự chạy `pulumi up/destroy/import/refresh`, đổi config stack hay kích hoạt pipeline nếu bạn chưa yêu cầu; giữ nguyên identity của resource (hoặc thêm `aliases` và nêu rõ chỗ sẽ bị replace). Với POC thì các đơn giản hóa có chủ đích (deploy chạy tay, tắt protect, role Admin) chỉ được nhắc một lần, không bị coi là lỗi.
+
+**Hook nhắc việc:** khi trợ lý sửa file trong `infra/`, `Pulumi*.yaml` hoặc workflow CI có nhắc Pulumi thì hiện lời nhắc "checks chưa chạy". Sửa chính skill thì hook chạy lại kiểm tra của skill. Hook chỉ mang tính nhắc, nên một lời nhắc không có nghĩa là đã kiểm tra; không có hook thì vẫn phải tự chạy `verify`.
+
+**Kiểm tra skill** (không cần Go, AWS hay Pulumi), cũng là việc workflow `pulumi-pack.yml` chạy tự động khi sửa `.agents/`, `.claude/`, `.codex/`, `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/OPERATIONS.md`:
+
+```bash
+python -B scripts/verify-pulumi-pack.py
+python -B -m unittest discover -s scripts -p test_pulumi_pack.py
+```
+
+Cài skill sang repo khác, tin cậy hook và các giới hạn: xem [README của skill](../.agents/skills/pulumi/README.md).
+
 ## Dọn dẹp
 
 ```bash

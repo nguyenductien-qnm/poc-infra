@@ -5,9 +5,9 @@ POC chứng minh cách tổ chức IaC bằng Pulumi Go: **một codebase, 3 sta
 | Tài liệu | Dành cho | Nội dung |
 | -------- | -------- | -------- |
 | [docs/SETUP.md](docs/SETUP.md) | Người dựng POC | Từ account trống tới deploy đầu: bootstrap, GitHub, stack workload |
-| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Người vận hành | Workflow CI, role CI, bootstrap, sự cố, dọn dẹp |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md) | Người vận hành | Workflow CI, role CI, bootstrap, sự cố, skill AI, dọn dẹp |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Reviewer, mentor | Vì sao thiết kế như vậy, khác production ở đâu |
-| [docs/POC-RESULTS.md](docs/POC-RESULTS.md) | Mentor | Kịch bản chứng minh, tiêu chí đạt, số liệu |
+| [docs/POC-RESULTS.md](docs/POC-RESULTS.md) | Mentor | Số liệu thời gian chạy (preview, deploy) |
 
 ## Kiến trúc
 
@@ -62,7 +62,7 @@ Luồng truy cập: Internet → ALB (port 80) → Fargate task (public subnet) 
 - `expectedAccount`: account AWS mà stack được phép chạy, lưu dạng secret (mã hoá KMS) để không lộ account ID. Credentials thuộc account khác thì preview/up dừng ngay. Set bằng `pulumi config set --secret expectedAccount <account-id>`.
 - `imageTag` do CI set theo Git SHA (7 ký tự) mỗi lần deploy, không lưu trong `Pulumi.<stack>.yaml`. Thiếu hoặc bằng `latest` thì preview/up báo lỗi.
 - `ecrRepositoryName`: repo ECR dùng chung, do bootstrap quản lý.
-- `protectStateful`: bật thì RDS/EFS có `pulumi.Protect`, RDS giữ final snapshot khi xoá. `deletionProtection`: cờ bảo vệ xoá phía AWS của RDS. Hiện cả 3 stack đều `false`, kể cả prod; đặt `true` cho prod trước khi chạy kịch bản bảo vệ ở [docs/POC-RESULTS.md](docs/POC-RESULTS.md).
+- `protectStateful`: bật thì RDS/EFS có `pulumi.Protect`, RDS giữ final snapshot khi xoá. `deletionProtection`: cờ bảo vệ xoá phía AWS của RDS. Hiện cả 3 stack đều `false`, kể cả prod; đặt `true` cho prod khi cần bảo vệ thật.
 
 ## Chạy nhanh
 

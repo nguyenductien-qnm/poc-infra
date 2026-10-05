@@ -28,7 +28,7 @@ Config stack `poc` nằm ở [`Pulumi.poc.yaml`](../infra/bootstrap/Pulumi.poc.y
 bash scripts/setup-bootstrap-backend.sh
 ```
 
-**1.2. Tạo stack.** Chưa có KMS key nên dùng passphrase trước:
+**1.2. Tạo stack.** Chưa có KMS key nên dùng passphrase trước (Pulumi sẽ hỏi passphrase, hoặc đặt biến `PULUMI_CONFIG_PASSPHRASE`; bước 1.4 chuyển sang KMS ngay sau đó):
 
 ```bash
 cd infra/bootstrap
@@ -116,12 +116,12 @@ Commit các `Pulumi.<stack>.yaml`.
 
 ## 4. Deploy đầu tiên
 
-`pr-check.yml` và `deploy.yml` đang chỉ chạy tay (xem [README](../README.md#cicd)). Stack chưa có image trong ECR nên deploy đầu tiên đi qua CI để build và push image trước:
+`pr-check.yml` và `deploy.yml` đang chỉ chạy tay (xem [OPERATIONS.md](OPERATIONS.md#workflow-ci)). Stack chưa có image trong ECR nên deploy đầu tiên đi qua CI để build và push image trước:
 
 1. Actions > **CD Deploy Infrastructure & App** > Run workflow, chọn nhánh `dev`.
 2. Job `preview`: đọc diff ở Job Summary.
 3. Job `deploy` (chờ approval nếu environment đã bật reviewer, hiện `dev`, `staging`, `prod` chưa bật): build image tag Git SHA, push ECR, `pulumi up`.
-4. Lặp lại với `staging`; với `main` (prod) chỉ nên chạy preview trừ khi muốn dựng prod thật (xem [POC-RESULTS.md](POC-RESULTS.md)).
+4. Lặp lại với `staging`; với `main` (prod) chỉ nên chạy preview trừ khi muốn dựng prod thật (tốn tiền theo giờ).
 
 Local chỉ `preview`:
 

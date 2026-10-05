@@ -14,7 +14,9 @@ POC giữ đúng hướng thiết kế mục tiêu (một codebase, nhiều stac
 - Pulumi khuyên bắt đầu monolithic, chỉ tách khi cần.
 - Giống mô hình Terraform quen thuộc: `main.go` ≈ root module, `internal/` ≈ modules, `Pulumi.<stack>.yaml` ≈ tfvars.
 
-**Đánh đổi:** cả ba stack chung một account POC, nên CIDR phải khác nhau (`10.10/16`, `10.20/16`, `10.30/16`) và tên resource phải gắn tên stack. `preview` chậm dần khi số resource tăng; đo ở [POC-RESULTS.md](POC-RESULTS.md) để làm căn cứ khi nào nên tách project.
+**Đánh đổi:** cả ba stack chung một account POC, nên CIDR phải khác nhau (`10.10/16`, `10.20/16`, `10.30/16`) và tên resource phải gắn tên stack. `preview` chậm dần khi số resource tăng; số đo hiện tại ở [POC-RESULTS.md](POC-RESULTS.md) (dưới 10 giây ở 39 resource) làm căn cứ khi nào nên tách project.
+
+**Khi nào tách.** Monolith hợp lý khi mới dựng và một team. Nên tách khi có từ 2 team deploy độc lập, cần giới hạn quyền theo lớp (team app không được sửa network/RDS), hoặc `preview` chậm thật. Hướng tách đề xuất theo chủ sở hữu và tần suất đổi, không tách hết thành 4 project: `foundation` (network, platform, data, đổi ít) và `app` (đổi hàng ngày), đọc output của foundation qua `StackReference`. `bootstrap` đã tách riêng. Giữ ranh giới package sạch (mỗi package nhận `Args`, trả `Outputs`, không import chéo) thì tách sau này chỉ là đổi biến Go thành `StackReference`.
 
 ## 2. Package theo lớp, mỗi package là ComponentResource
 
@@ -62,6 +64,8 @@ POC giữ đúng hướng thiết kế mục tiêu (một codebase, nhiều stac
 
 **Đánh đổi:** phát hiện lệch về phía an toàn (thiếu điều kiện nào thì build). Thay đổi ngoài `app/` nhưng ảnh hưởng image (ví dụ base image đổi phía registry với tag cố định `golang:1.22-alpine`) không được phát hiện; muốn build lại thì sửa `app/`.
 
+**Giới hạn đã gặp khi chạy thật:** stack mới chưa có `imageTag` luôn build, kể cả khi ECR đã có tag cùng SHA do stack khác đẩy lên. Tag ECR đang mutable nên lần build đó ghi đè tag, image cũ thành untagged (thấy khi deploy `staging` sau `dev`). Cách giảm: bật *tag immutability* cho ECR và dùng lại tag đã có khi `app/` không đổi.
+
 ## 7. `expectedAccount` dạng secret
 
 **Chọn:** mỗi stack (workload và bootstrap) có config `expectedAccount` mã hoá bằng KMS. `main.go` so với `GetCallerIdentity` ngay đầu, lệch thì dừng trước khi tạo resource nào. Thông báo lỗi không in account ID vì log CI của repo là public.
@@ -72,7 +76,7 @@ POC giữ đúng hướng thiết kế mục tiêu (một codebase, nhiều stac
 
 **Chọn:** `protectStateful` bật `pulumi.Protect` cho RDS/EFS và quyết định `skipFinalSnapshot`; `deletionProtection` bật cờ xoá của AWS cho RDS. Hai cờ độc lập, để chứng minh hai tầng bảo vệ (Pulumi và AWS).
 
-**Đánh đổi:** hiện cả ba stack để `false`, kể cả prod. Cần `true` cho prod trước khi chạy kịch bản `protect` ([POC-RESULTS.md](POC-RESULTS.md)).
+**Đánh đổi:** hiện cả ba stack để `false`, kể cả prod. Đặt `true` cho prod khi cần bảo vệ thật.
 
 ## 9. Chấp nhận khác production thật
 
@@ -102,3 +106,14 @@ POC giữ đúng hướng thiết kế mục tiêu (một codebase, nhiều stac
 | Write-back `imageTag` vào Git              | Sau khi `up` thành công, bot (`github-actions[bot]`) commit tag mới vào `Pulumi.<stack>.yaml` để Git là nguồn sự thật về bản đang chạy; local preview không cần `config set` thủ công | Bot phải push được vào nhánh có branch protection (hoặc mở PR rồi người merge), thêm commit nhiễu và race với dev đang push. Pull code về cũng không tự cập nhật ECS (không có controller như Argo/Flux), vẫn cần CI `pulumi up`. POC giữ tag trong state Pulumi |
 | Deployment circuit breaker cho ECS Service | `DeploymentCircuitBreaker` với `rollback: true` để ECS tự rollback khi task mới không khỏe                                                                                            | Chưa cần cho POC; ghi nhận ở [OPERATIONS.md](OPERATIONS.md#image-đến-ecs-thế-nào)                                                                                                                                                                                |
 | Tag image theo hash nội dung `app/`        | Nội dung không đổi thì tag không đổi                                                                                                                                                  | Hiện tại đã chọn cách bỏ qua build khi `app/` không đổi (mục 6)                                                                                                                                                                                                  |
+
+## 12. Lộ trình lên production
+
+POC dừng ở "đúng cấu trúc và flow". Nếu dùng làm platform cho một công ty, thứ tự đề xuất:
+
+1. Chốt mô hình account: tách account theo môi trường (dev, staging, prod) và account Hub/shared nếu có. Khi đó `expectedAccount` là công cụ chính chống nhầm account, bootstrap chạy mỗi account một lần.
+2. Bật các cổng kiểm soát đã thiết kế: *Required reviewers* cho `staging`, `prod`, branch protection và CODEOWNERS cho `infra/`.
+3. Thu hẹp quyền: bỏ `AdministratorAccess` ở role deploy, giới hạn `kms:Decrypt` theo key và môi trường, một key KMS riêng mỗi môi trường (TODO #17).
+4. Tách `foundation` và `app` khi có nhiều team (xem mục 1).
+5. Hoàn thiện hạ tầng: private subnet + NAT/TGW, HTTPS (ACM), RDS multi-AZ + AWS Backup đã thử restore, observability, deployment circuit breaker, tag ECR immutable.
+6. Mẫu thêm service mới cho các team (một component `Service` nhận `Args`), kèm test cho component và policy.
