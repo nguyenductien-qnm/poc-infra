@@ -128,8 +128,8 @@ Ban đầu tạo bằng script `scripts/setup-ci-roles.sh`. **Đã thay** bằng
 Trust policy dùng `StringEquals` với OIDC `sub` dạng immutable `repo:<owner>@<owner_id>/<repo>@<repo_id>:...` (repo tạo sau 15/07/2026). Role deploy tin `environment:<env>`, role preview tin `pull_request`.
 
 ### Bước 13: Cấu hình GitHub repo
-- **Secrets** (Settings > Secrets and variables > Actions): `AWS_ROLE_DEV_PREVIEW`, `AWS_ROLE_DEV_DEPLOY`, `AWS_ROLE_STAGING_PREVIEW`, `AWS_ROLE_STAGING_DEPLOY`, `AWS_ROLE_PROD_PREVIEW`, `AWS_ROLE_PROD_DEPLOY` (ARN lấy từ output `previewRoleArns` / `deployRoleArns` của stack bootstrap).
-- **Environments** (Settings > Environments): tạo `dev`, `staging`, `prod`. Bật *Required reviewers* cho `staging` và `prod`; giới hạn deployment branch `main` cho `prod`.
+- **Secrets** (Settings > Secrets and variables > Actions): `AWS_ROLE_DEV_PREVIEW`, `AWS_ROLE_DEV_DEPLOY`, `AWS_ROLE_STAGING_PREVIEW`, `AWS_ROLE_STAGING_DEPLOY`, `AWS_ROLE_PROD_PREVIEW`, `AWS_ROLE_PROD_DEPLOY`, `AWS_ROLE_BOOTSTRAP` (ARN lấy từ output `previewRoleArns` / `deployRoleArns` / `bootstrapRoleArn` của stack bootstrap).
+- **Environments** (Settings > Environments): tạo `dev`, `staging`, `prod`. Bật *Required reviewers* cho `staging` và `prod`; giới hạn deployment branch `main` cho `prod`. Tạo thêm `bootstrap` (Required reviewers, deployment branch `main`) cho workflow bootstrap.
 
 ### Bước 14: Kiểm tra flow
 - Mở PR vào `dev`: job `pr-check` chạy preview, comment diff vào PR.

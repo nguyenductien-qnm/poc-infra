@@ -1,0 +1,80 @@
+name: "Bootstrap Infrastructure"
+
+# Chỉ chạy tay (workflow_dispatch), không có trigger tự động.
+# Role bootstrap có quyền rộng nên chỉ assume được từ GitHub Environment `bootstrap`
+# (bật Required reviewers + giới hạn deployment branch = main).
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "preview: chỉ xem diff. up: áp dụng thay đổi (chạy preview trước và đọc diff)."
+        type: choice
+        options:
+          - preview
+          - up
+        default: preview
+
+concurrency:
+  group: bootstrap
+  cancel-in-progress: false
+
+permissions:
+  id-token: write  # Xác thực AWS OIDC
+  contents: read   # Đọc mã nguồn
+
+env:
+  AWS_REGION: "ap-southeast-1"
+  STACK: poc
+
+jobs:
+  bootstrap:
+    name: "Bootstrap (${{ inputs.action }})"
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: bootstrap
+
+    steps:
+      - name: "Checkout Code"
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: "Setup Go"
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: infra/go.mod
+          cache-dependency-path: infra/go.sum
+
+      - name: "1. Xác thực AWS qua OIDC (Role Bootstrap)"
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_BOOTSTRAP }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: "2. Cài đặt Pulumi CLI"
+        uses: pulumi/actions@cd99a7f8865434dd3532b586a26f9ebea596894f # v5.5.1
+
+      - name: "3. Pulumi ${{ inputs.action }}"
+        working-directory: ./infra/bootstrap
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          pulumi login "s3://pulumi-bootstrap-poc-${ACCOUNT_ID}?region=${AWS_REGION}"
+          pulumi stack select "$STACK"
+
+          if [ "${{ inputs.action }}" = "up" ]; then
+            pulumi up --yes --diff
+            exit 0
+          fi
+
+          set +e
+          pulumi preview --diff > preview_output.txt 2>&1
+          EXIT_CODE=$?
+          set -e
+          cat preview_output.txt
+
+          {
+            echo "### Bootstrap Preview (\`stack: $STACK\`)"
+            echo '```'
+            head -c 60000 preview_output.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit $EXIT_CODE

@@ -98,13 +98,14 @@ func main() {
 			return err
 		}
 
-		// 5. Export outputs: ARN role la gia tri GitHub secret AWS_ROLE_<ENV>_<PREVIEW|DEPLOY>
+		// 5. Export outputs: ARN role la gia tri GitHub secret AWS_ROLE_<ENV>_<PREVIEW|DEPLOY> va AWS_ROLE_BOOTSTRAP
 		ctx.Export("stateBucketName", backend.BucketName)
 		ctx.Export("secretsKeyArn", backend.KeyArn)
 		ctx.Export("ecrRepositoryUrl", reg.RepositoryUrl)
 		ctx.Export("oidcProviderArn", ci.OidcProviderArn)
 		ctx.Export("previewRoleArns", ci.PreviewRoleArns)
 		ctx.Export("deployRoleArns", ci.DeployRoleArns)
+		ctx.Export("bootstrapRoleArn", ci.BootstrapRoleArn) // GitHub secret AWS_ROLE_BOOTSTRAP
 
 		return nil
 	})

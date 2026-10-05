@@ -16,6 +16,9 @@ const (
 	readOnlyPolicyArn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 )
 
+// bootstrapEnvironment la GitHub Environment duy nhat assume duoc role bootstrap (can Required reviewers + chi nhanh main)
+const bootstrapEnvironment = "bootstrap"
+
 type envRolesResult struct {
 	previewArn pulumi.StringOutput
 	deployArn  pulumi.StringOutput
@@ -115,4 +118,21 @@ func attach(ctx *pulumi.Context, resName string, role *iam.Role, roleName string
 		return fmt.Errorf("attaching policy %s: %w", resName, err)
 	}
 	return nil
+}
+
+// newBootstrapRole tao role cho workflow chay project infra/bootstrap. Quyen rong (quan ly duoc IAM, S3, KMS, ECR)
+// nen bao ve o cua vao: chi tin sub environment:bootstrap, khong role workload nao assume duoc.
+// Khong bao gio import: role nay chua ton tai truoc bootstrap.
+func newBootstrapRole(ctx *pulumi.Context, name string, args *Args, oidcArn pulumi.StringOutput, opt pulumi.ResourceOption) (pulumi.StringOutput, error) {
+	roleName := args.NamePrefix + "-bootstrap-role"
+	role, err := newRole(ctx, name+"-bootstrap-role", roleName, "CI role chay project infra/bootstrap",
+		[]string{args.SubjectPrefix + ":environment:" + bootstrapEnvironment},
+		oidcArn, false, opt)
+	if err != nil {
+		return pulumi.StringOutput{}, err
+	}
+	if err := attach(ctx, name+"-bootstrap-admin", role, roleName, pulumi.String(adminPolicyArn).ToStringOutput(), adminPolicyArn, false, opt); err != nil {
+		return pulumi.StringOutput{}, err
+	}
+	return role.Arn, nil
 }

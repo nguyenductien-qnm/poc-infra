@@ -8,7 +8,7 @@ POC chứng minh cách tổ chức IaC bằng Pulumi Go: **một codebase, 3 sta
 .
 ├── app/                    Web app Go (ghi note vào Postgres), build thành image ECR poc-app
 ├── infra/                  Một Go module, hai Pulumi project
-│   ├── bootstrap/          Project infra-bootstrap: nền cho workload, admin chạy tay (docs/BOOTSTRAP.md)
+│   ├── bootstrap/          Project infra-bootstrap: nền cho workload, admin setup tay một lần, sau đó chạy qua workflow bootstrap.yml (docs/BOOTSTRAP.md)
 │   │   ├── main.go
 │   │   ├── Pulumi.poc.yaml Config 1 stack cho 1 account
 │   │   └── internal/       Chỉ bootstrap import được (Go chặn lúc build)
@@ -89,7 +89,7 @@ pulumi config set imageTag "$(pulumi stack output imageTag)"
 pulumi preview
 ```
 
-Quy ước: local chỉ chạy `preview` workload, mọi `up` workload đi qua CI. Bootstrap là ngoại lệ: admin chạy tay theo [docs/BOOTSTRAP.md](docs/BOOTSTRAP.md). Quy ước này chưa được ép bằng IAM: credential admin trên máy vẫn `up` được; muốn ép thì dev dùng role read-only (kịch bản `AccessDenied` ở docs/PLAN.md Phase 6).
+Quy ước: local chỉ chạy `preview` workload, mọi `up` workload đi qua CI. Bootstrap là ngoại lệ: chạy qua workflow `bootstrap.yml` (chỉ chạy tay, cần reviewer duyệt) theo [docs/BOOTSTRAP.md](docs/BOOTSTRAP.md). Quy ước này chưa được ép bằng IAM: credential admin trên máy vẫn `up` được; muốn ép thì dev dùng role read-only (kịch bản `AccessDenied` ở docs/PLAN.md Phase 6).
 
 ## Khác biệt so với production thật
 

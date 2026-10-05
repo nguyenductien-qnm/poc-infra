@@ -1,76 +1,86 @@
 # Bootstrap
 
-Project `infra/bootstrap` quản lý phần nền mà mọi stack workload dựa vào. Admin chạy tay, CI không chạy project này, nên pipeline workload không tự sửa được quyền của chính nó.
+[`infra/bootstrap`](../infra/bootstrap/main.go) tạo nền cho mọi stack workload. Chạy qua workflow [`bootstrap.yml`](../.github/workflows/bootstrap.yml) (chỉ chạy tay).
 
-| Resource | Package | Bảo vệ |
-| --- | --- | --- |
-| S3 `pulumi-state-poc-<account>` (state workload) + versioning, mã hoá, chặn public, tắt ACL | `bootstrap/internal/statebackend` | bucket: `protect` + giữ lại khi destroy |
-| KMS key + alias `alias/pulumi-poc-key` (mã hoá secret Pulumi) | `bootstrap/internal/statebackend` | key: `protect` + giữ lại khi destroy |
-| ECR `poc-app` | `bootstrap/internal/registry` | `protect` + giữ lại khi destroy |
-| GitHub OIDC provider, 6 role CI, policy `poc-ci-preview-policy` | `bootstrap/internal/ciiam` | provider, role: `protect` |
+| Resource                                                     | Code                                                                           |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| S3 `pulumi-state-poc-<account>` (state workload)             | [`statebackend/bucket.go`](../infra/bootstrap/internal/statebackend/bucket.go) |
+| KMS key `alias/pulumi-poc-key` (mã hoá secret Pulumi)        | [`statebackend/key.go`](../infra/bootstrap/internal/statebackend/key.go)       |
+| ECR `poc-app`                                                | [`registry/module.go`](../infra/bootstrap/internal/registry/module.go)         |
+| GitHub OIDC provider, role CI preview/deploy, role bootstrap | [`ciiam/`](../infra/bootstrap/internal/ciiam/)                                 |
 
-## State của bootstrap lưu ở đâu
+Config: [`Pulumi.yaml`](../infra/bootstrap/Pulumi.yaml).
 
-Ở bucket riêng `pulumi-bootstrap-poc-<account>`, tạo bằng `scripts/setup-bootstrap-backend.sh`. Đây là resource **duy nhất tạo tay**: bootstrap không thể lưu state trong chính bucket nó quản lý. Workload vẫn lưu state ở `pulumi-state-poc-<account>`.
+## Setup một lần (admin, chạy tay)
 
-## Lần đầu: tiếp nhận resource đang có
+Dùng credential admin của account đích. Cần vì CI chưa có role để chạy.
 
-Các resource trên đã tạo bằng tay/script từ trước. Bootstrap **import** chúng, không tạo mới. Code khai báo đúng cấu hình hiện tại (kể cả quyền Admin của role deploy) để import không thay đổi gì.
-
-Chạy bằng credential admin:
+**1. Tạo bucket lưu state của bootstrap** ([`setup-bootstrap-backend.sh`](../scripts/setup-bootstrap-backend.sh)):
 
 ```bash
-# 1. Tạo bucket state cho bootstrap
 bash scripts/setup-bootstrap-backend.sh
+```
 
-# 2. Login vào bucket bootstrap, tạo stack poc (1 stack cho 1 account)
+**2. Tạo stack.** Chưa có KMS key nên dùng passphrase trước:
+
+```bash
 cd infra/bootstrap
 pulumi login "s3://pulumi-bootstrap-poc-<account>?region=ap-southeast-1"
-pulumi stack init poc --secrets-provider "awskms://alias/pulumi-poc-key?region=ap-southeast-1"
+pulumi stack init poc --secrets-provider passphrase
 pulumi config set --secret expectedAccount <account-id>
-
-# 3. Preview: chỉ được có import
-pulumi preview --diff
+pulumi config set importExisting false
 ```
 
-Kết quả preview đúng: `25 to import`, không có `update`, `replace`, `delete`. Có thì **dừng lại**: cấu hình thật đã lệch khỏi code, sửa code cho khớp rồi preview lại, không `up`.
+**3. Deploy lần đầu:**
 
 ```bash
-# 4. Import vào state
-pulumi up
-
-# 5. Tắt chế độ import, preview phải không còn thay đổi
-pulumi config set importExisting false
 pulumi preview --diff
+pulumi up
 ```
 
-Commit `Pulumi.poc.yaml` (có `expectedAccount` đã mã hoá, `importExisting: "false"`).
-
-Kiểm tra cục bộ khi viết code này (state tạm trên máy, chỉ đọc AWS): 25 import, 0 update/replace/delete; sai account bị chặn; `importExisting=false` ra 29 create.
-
-## Account mới
-
-Đặt `importExisting: "false"`. Lúc này chưa có KMS key nên tạo stack bằng `--secrets-provider passphrase`. Sau `up` (key đã có), chuyển sang KMS:
+**4. Chuyển secrets sang KMS** (key đã có sau `up`):
 
 ```bash
 pulumi stack change-secrets-provider "awskms://alias/pulumi-poc-key?region=ap-southeast-1"
 ```
 
-## Chạy xen kẽ bootstrap và workload
+**5. Cấu hình GitHub** cho workflow bootstrap:
 
-Hai project ở hai bucket khác nhau. `pulumi login` đổi backend cho cả máy, nên khi quay lại workload phải login lại bucket workload. Hoặc set backend theo từng lệnh:
+```bash
+pulumi stack output bootstrapRoleArn
+```
+
+- Secret `AWS_ROLE_BOOTSTRAP` = ARN trên.
+- Environment `bootstrap`: bật _Required reviewers_, giới hạn deployment branch `main`.
+
+Ngoài ra lấy ARN cho các secret của workload: `pulumi stack output previewRoleArns` / `deployRoleArns`.
+
+Commit `Pulumi.poc.yaml`.
+
+## Vận hành (CI)
+
+Actions > **Bootstrap Infrastructure** > Run workflow (nhánh `main`):
+
+1. Chọn `preview`, duyệt, đọc diff ở Job Summary.
+2. Chạy lại với `up`, duyệt lần nữa.
+
+Đổi bootstrap: sửa code, mở PR, merge vào `main`, rồi chạy 2 bước trên. Không sửa tay trên console hay AWS CLI.
+
+## Bị khoá thì làm gì
+
+Role bootstrap do chính bootstrap quản lý. PR sửa sai trust policy của nó thì workflow không assume được nữa. Khi đó admin sửa code rồi `pulumi up` từ máy:
+
+```bash
+cd infra/bootstrap
+pulumi login "s3://pulumi-bootstrap-poc-<account>?region=ap-southeast-1"
+pulumi stack select poc
+pulumi up
+```
+
+## Chạy tay xen kẽ với workload
+
+`pulumi login` đổi backend cho cả máy. Quay lại workload phải login lại, hoặc set backend theo lệnh:
 
 ```bash
 PULUMI_BACKEND_URL="s3://pulumi-bootstrap-poc-<account>?region=ap-southeast-1" pulumi preview
 ```
-
-## Thay đổi sau này
-
-Mọi thay đổi bootstrap đi qua PR rồi admin preview/up. Không sửa role, OIDC, bucket, key bằng console hay AWS CLI nữa.
-
-## Giới hạn hiện tại
-
-- Quyền CI giữ nguyên như script cũ: role deploy có `AdministratorAccess`, role preview có `ReadOnlyAccess` và `kms:Decrypt` trên `*`. Siết quyền là bước sau (issue #17).
-- `ReadOnlyAccess` cho role preview đọc được mọi bucket, kể cả bucket bootstrap. State bootstrap không chứa secret dạng rõ, nhưng nên chặn bằng bucket policy ở bước siết quyền.
-- Bucket, key chưa có tag; key chưa bật rotation. Giữ nguyên để import khớp, thêm ở thay đổi riêng.
-- Chưa chạy `up` thật: import mới được kiểm chứng bằng preview.
