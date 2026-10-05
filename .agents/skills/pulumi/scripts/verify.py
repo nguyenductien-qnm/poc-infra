@@ -266,9 +266,12 @@ def _git_preimage_has_pulumi(path, repo_root, started):
 
 
 def _pack_file(path, repo_root):
-    """Pack sources and installed adapters are the only edits that warrant rerunning pack checks."""
-    parts = path.relative_to(repo_root).parts
-    return parts[:3] == (".agents", "skills", "pulumi") or (len(parts) > 1 and parts[0] in (".claude", ".codex"))
+    """Pack sources and installed Pulumi adapters are the only edits that warrant rerunning pack checks."""
+    relative = path.relative_to(repo_root)
+    if relative.parts[:3] == (".agents", "skills", "pulumi"):
+        return True
+    # Unrelated skills, commands and agents under .claude/.codex stay silent.
+    return relative.as_posix() in {f".{runtime}/{name}" for runtime in ("codex", "claude") for name, _ in _templates(Path(), runtime)}
 
 
 def _relevant(path, repo_root, payload=None, runtime=None, started=None, changed=None):
