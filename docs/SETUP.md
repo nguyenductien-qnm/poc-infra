@@ -1,137 +1,149 @@
 # Pulumi POC Setup Guide
 
-Các bước đã thực hiện để khởi tạo hạ tầng từ đầu (AWS S3 Backend + AWS KMS Secrets Provider).
+Dựng POC từ đầu trên một account AWS mới. Thứ tự: bootstrap (nền), cấu hình GitHub, stack workload, deploy đầu tiên. Chỉ ghi thứ tự và lệnh; lý do thiết kế xem [DECISIONS.md](DECISIONS.md).
 
----
+## Yêu cầu
 
-## 1. Cấu hình ban đầu
-- **AWS Region**: `ap-southeast-1`
-- **S3 Bucket Backend**: `pulumi-state-poc-730335441285`
-- **KMS Alias**: `alias/pulumi-poc-key`
-- **Project Name**: `infra-poc`
+- Credential admin của account đích (chỉ dùng cho bước 1, vì CI chưa có role).
+- AWS CLI, Pulumi CLI, Go (phiên bản trong [`infra/go.mod`](../infra/go.mod)).
+- Repo GitHub của dự án. Lấy `owner`, `ownerId`, `repo`, `repoId` để điền vào [`Pulumi.poc.yaml`](../infra/bootstrap/Pulumi.poc.yaml) (OIDC `sub` dạng immutable).
+- Region: `ap-southeast-1`. Không commit account ID dạng plaintext; mọi nơi cần account ID đều dùng `expectedAccount` (secret).
 
----
+## 1. Bootstrap (admin, chạy tay một lần)
 
-## 2. Các bước thực hiện
+[`infra/bootstrap`](../infra/bootstrap/main.go) tạo nền cho mọi stack workload. Dùng credential admin của account đích, cần vì CI chưa có role.
 
-### Bước 1: Tạo cây thư mục `internal`
+| Resource                                                       | Code                                                                           |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| S3 `pulumi-state-poc-<account>` (state workload)               | [`statebackend/bucket.go`](../infra/bootstrap/internal/statebackend/bucket.go) |
+| KMS key `alias/pulumi-poc-key` (mã hoá secret Pulumi)          | [`statebackend/key.go`](../infra/bootstrap/internal/statebackend/key.go)       |
+| ECR `poc-app`                                                  | [`registry/module.go`](../infra/bootstrap/internal/registry/module.go)         |
+| GitHub OIDC provider, 6 role CI preview/deploy, role bootstrap | [`ciiam/`](../infra/bootstrap/internal/ciiam/)                                 |
+
+Config stack `poc` nằm ở [`Pulumi.poc.yaml`](../infra/bootstrap/Pulumi.poc.yaml): region, prefix, repo GitHub (`owner`, `ownerId`, `repo`, `repoId`), `importExisting`, `expectedAccount` mã hoá. Sửa phần GitHub cho đúng repo của bạn trước khi `up`.
+
+**1.1. Tạo bucket lưu state của bootstrap** (resource tạo tay duy nhất, vì bootstrap không thể lưu state trong bucket do chính nó tạo; script chạy lại an toàn):
+
 ```bash
-mkdir -p internal/network internal/data internal/platform internal/app
+bash scripts/setup-bootstrap-backend.sh
 ```
 
-### Bước 2: Tạo S3 Bucket làm Backend & bật Versioning
-```bash
-# Tạo bucket
-aws s3api create-bucket \
-  --bucket pulumi-state-poc-730335441285 \
-  --region ap-southeast-1 \
-  --create-bucket-configuration LocationConstraint=ap-southeast-1
+**1.2. Tạo stack.** Chưa có KMS key nên dùng passphrase trước:
 
-# Bật versioning bảo vệ state file
-aws s3api put-bucket-versioning \
-  --bucket pulumi-state-poc-730335441285 \
-  --versioning-configuration Status=Enabled
+```bash
+cd infra/bootstrap
+pulumi login "s3://pulumi-bootstrap-poc-<account>?region=ap-southeast-1"
+pulumi stack init poc --secrets-provider passphrase
+pulumi config set --secret expectedAccount <account-id>
+pulumi config set importExisting false
 ```
 
-### Bước 3: Tạo AWS KMS Key & Alias mã hóa Secrets
+`importExisting`: đặt `true` nếu account đã có bucket state, KMS key, ECR hoặc role CI tạo tay từ trước. Lần `up` đầu import chúng thay vì tạo mới, xong đổi lại `false`. Account trống để `false`.
+
+**1.3. Deploy lần đầu:**
+
 ```bash
-# Tạo KMS Key
-KEY_ID=$(aws kms create-key \
-  --description "Pulumi POC Secrets Encryption Key" \
-  --region ap-southeast-1 \
-  --query "KeyMetadata.KeyId" \
-  --output text)
-
-echo "KMS Key ID: $KEY_ID"
-
-# Gắn alias
-aws kms create-alias \
-  --alias-name alias/pulumi-poc-key \
-  --target-key-id "$KEY_ID" \
-  --region ap-southeast-1
+pulumi preview --diff
+pulumi up
 ```
 
-### Bước 3b: Tạo AWS ECR Repository dùng chung (`poc-app`)
+**1.4. Chuyển secrets sang KMS** (key đã có sau `up`):
+
 ```bash
-aws ecr create-repository \
-  --repository-name poc-app \
-  --image-scanning-configuration scanOnPush=true \
-  --region ap-southeast-1
+pulumi stack change-secrets-provider "awskms://alias/pulumi-poc-key?region=ap-southeast-1"
 ```
 
-### Bước 4: Đăng nhập Pulumi vào S3 Backend
+Commit `Pulumi.poc.yaml` (có `expectedAccount` mã hoá và `secretsprovider` KMS).
+
+Từ đây mọi thay đổi bootstrap đi qua workflow `bootstrap.yml`, xem [OPERATIONS.md](OPERATIONS.md#bootstrap).
+
+## 2. Cấu hình GitHub
+
+ARN role lấy từ output của stack bootstrap. Output bị che `[secret]` nếu thiếu `--show-secrets`:
+
 ```bash
-pulumi login "s3://pulumi-state-poc-730335441285?region=ap-southeast-1"
+cd infra/bootstrap && pulumi stack output --show-secrets
 ```
 
-### Bước 5: Khởi tạo Project & Stack `dev`
-```bash
-pulumi new aws-go -n infra-poc -s dev \
-  --secrets-provider="awskms://alias/pulumi-poc-key?region=ap-southeast-1" \
-  --force \
-  --yes
-```
+**Secrets** (Settings > Secrets and variables > Actions):
 
-### Bước 6: Khởi tạo thêm 2 Stack `staging` và `prod`
+| Secret                                                                      | Lấy từ output      |
+| --------------------------------------------------------------------------- | ------------------ |
+| `AWS_ROLE_BOOTSTRAP`                                                        | `bootstrapRoleArn` |
+| `AWS_ROLE_DEV_PREVIEW`, `AWS_ROLE_STAGING_PREVIEW`, `AWS_ROLE_PROD_PREVIEW` | `previewRoleArns`  |
+| `AWS_ROLE_DEV_DEPLOY`, `AWS_ROLE_STAGING_DEPLOY`, `AWS_ROLE_PROD_DEPLOY`    | `deployRoleArns`   |
+
+**Environments** (Settings > Environments):
+
+- `dev`, `staging`, `prod`: thiết kế bật _Required reviewers_ cho `staging` và `prod`; giới hạn deployment branch `main` cho `prod`.
+- `bootstrap`: thiết kế bật _Required reviewers_, giới hạn deployment branch `main`. Nên làm, vì role bootstrap có quyền Admin và chỉ tin đúng environment này.
+
+> Hiện POC đã bật _Required reviewers_ cho `bootstrap` nhưng **chưa bật** cho `staging`, `prod` (tạo environment thì đủ để workflow chạy). Hệ quả và cách bật xem [OPERATIONS.md](OPERATIONS.md#approval-chưa-bật).
+
+**Nhánh:** `dev`, `staging`, `main` (map sang stack `dev`, `staging`, `prod`).
+
+## 3. Stack workload
+
+Ba stack đã có file config trong [`infra/workload`](../infra/workload/). Account mới thì tạo lại stack với KMS key của account đó (key mới không giải mã được `secure:` cũ):
+
 ```bash
+cd infra/workload
+pulumi login "s3://pulumi-state-poc-<account>?region=ap-southeast-1"
+
 KMS_URL="awskms://alias/pulumi-poc-key?region=ap-southeast-1"
+for s in dev staging prod; do
+  pulumi stack init "$s" --secrets-provider="$KMS_URL"
+done
+```
 
-pulumi stack init staging --secrets-provider="$KMS_URL"
-pulumi stack init prod    --secrets-provider="$KMS_URL"
+Mỗi stack cần config (giá trị mẫu xem [README](../README.md#config-theo-stack)):
+
+```bash
 pulumi stack select dev
-```
-
-### Bước 7: Cấu hình AWS Region cho stack
-```bash
 pulumi config set aws:region ap-southeast-1
+pulumi config set vpcCidr 10.10.0.0/16
+pulumi config set desiredCount 1
+pulumi config set dbInstanceClass db.t4g.micro
+pulumi config set protectStateful false
+pulumi config set deletionProtection false
+pulumi config set ecrRepositoryName poc-app
+pulumi config set --secret expectedAccount <account-id>
 ```
 
----
+Lặp lại cho `staging` (`10.20.0.0/16`) và `prod` (`10.30.0.0/16`, `desiredCount 2`, `db.t4g.small`). CIDR phải khác nhau vì 3 stack cùng một account. `imageTag` không đặt ở đây, CI set theo Git SHA.
 
-### Bước 8: Tạo khung code 4 package `internal/` & liên kết `main.go`
-- [infra/internal/network/](../infra/internal/network/module.go)
-- [infra/internal/data/](../infra/internal/data/module.go)
-- [infra/internal/platform/](../infra/internal/platform/module.go)
-- [infra/internal/app/](../infra/internal/app/module.go)
-- [infra/main.go](../infra/main.go)
+Commit các `Pulumi.<stack>.yaml`.
 
-### Bước 9: Kiểm tra compile & preview
+## 4. Deploy đầu tiên
+
+`pr-check.yml` và `deploy.yml` đang chỉ chạy tay (xem [README](../README.md#cicd)). Stack chưa có image trong ECR nên deploy đầu tiên đi qua CI để build và push image trước:
+
+1. Actions > **CD Deploy Infrastructure & App** > Run workflow, chọn nhánh `dev`.
+2. Job `preview`: đọc diff ở Job Summary.
+3. Job `deploy` (chờ approval nếu environment đã bật reviewer, hiện `dev`, `staging`, `prod` chưa bật): build image tag Git SHA, push ECR, `pulumi up`.
+4. Lặp lại với `staging`; với `main` (prod) chỉ nên chạy preview trừ khi muốn dựng prod thật (xem [POC-RESULTS.md](POC-RESULTS.md)).
+
+Local chỉ `preview`:
+
 ```bash
-go mod tidy
-go build -o /dev/null .
+cd infra/workload
+pulumi stack select dev
+pulumi config set imageTag "$(pulumi stack output imageTag)"   # cần stack đã deploy ít nhất một lần
 pulumi preview
 ```
-*Kết quả:* Compile thành công, preview tạo stack `infra-poc-dev` với 0 tài nguyên AWS.
 
----
+## 5. Kiểm tra
 
-### Bước 10: Viết mã nguồn triển khai thực tế cho `network` & `platform`
-- [infra/internal/network/](../infra/internal/network/module.go): VPC, Internet Gateway, 2 Public Subnets, 2 Private Subnets, Route Tables & S3 Gateway Endpoint.
-- [infra/internal/platform/](../infra/internal/platform/module.go): ECS Cluster, CloudWatch Log Group, ALB HTTP, Target Group (ip type cho Fargate), Security Group ALB/App. ECR sau đó chuyển thành repo dùng chung `poc-app` (Bước 3b), không còn tạo trong stack.
-- [infra/main.go](../infra/main.go): Kết nối output `network` sang `platform` và export thông tin.
-
-### Bước 11: Kiểm tra preview Phase 2
 ```bash
-go mod tidy
-go build -o /dev/null .
-pulumi preview
+pulumi stack output serviceUrl     # ALB DNS, mở bằng trình duyệt
+curl -s "http://$(pulumi stack output albDnsName)/health"
 ```
-*Kết quả:* Preview thành công **+21 resources** (VPC, Subnets, IGW, RouteTables, S3 Endpoint, ECS Cluster, ECR, ALB, TargetGroup, Listener, SecurityGroup, Logs).
 
----
+Trang web hiển thị trạng thái kết nối RDS và cho ghi note. Khi bật lại trigger tự động:
 
-## 3. Thiết lập CI/CD (GitHub Actions + OIDC)
+- Mở PR vào `dev`: job `validate-and-preview` comment diff vào PR.
+- Push `dev` / `staging` / `main`: job `preview` in diff ra Job Summary, job `deploy` chờ approval (staging/prod, khi đã bật reviewer) rồi `pulumi up`.
 
-### Bước 12: Tạo OIDC provider và 6 IAM role cho CI
-Ban đầu tạo bằng script `scripts/setup-ci-roles.sh`. **Đã thay** bằng project Pulumi `infra/bootstrap` (package `ciiam`), các role đang có được import vào. Script cũ đổi thành `scripts/setup-bootstrap-backend.sh`, chỉ tạo bucket lưu state của bootstrap. Xem [BOOTSTRAP.md](BOOTSTRAP.md).
+## 6. Dọn dẹp
 
-Trust policy dùng `StringEquals` với OIDC `sub` dạng immutable `repo:<owner>@<owner_id>/<repo>@<repo_id>:...` (repo tạo sau 15/07/2026). Role deploy tin `environment:<env>`, role preview tin `pull_request`.
-
-### Bước 13: Cấu hình GitHub repo
-- **Secrets** (Settings > Secrets and variables > Actions): `AWS_ROLE_DEV_PREVIEW`, `AWS_ROLE_DEV_DEPLOY`, `AWS_ROLE_STAGING_PREVIEW`, `AWS_ROLE_STAGING_DEPLOY`, `AWS_ROLE_PROD_PREVIEW`, `AWS_ROLE_PROD_DEPLOY`, `AWS_ROLE_BOOTSTRAP` (ARN lấy từ output `previewRoleArns` / `deployRoleArns` / `bootstrapRoleArn` của stack bootstrap).
-- **Environments** (Settings > Environments): tạo `dev`, `staging`, `prod`. Bật *Required reviewers* cho `staging` và `prod`; giới hạn deployment branch `main` cho `prod`. Tạo thêm `bootstrap` (Required reviewers, deployment branch `main`) cho workflow bootstrap.
-
-### Bước 14: Kiểm tra flow
-- Mở PR vào `dev`: job `pr-check` chạy preview, comment diff vào PR.
-- Merge vào `dev`: job `preview` in diff ra Job Summary, sau đó job `deploy` build image tag Git SHA và `pulumi up` stack `dev`.
-- Push `staging` / `main`: job `preview` chạy trước; job `deploy` chờ approval trên environment (người duyệt xem diff ở Job Summary) rồi mới deploy.
+Xem [OPERATIONS.md](OPERATIONS.md#dọn-dẹp).

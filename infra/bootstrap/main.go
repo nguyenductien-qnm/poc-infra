@@ -1,5 +1,5 @@
 // Chuong trinh bootstrap: nen tang ma moi stack workload dua vao (state backend, KMS, ECR, danh tinh CI).
-// Admin chay tay theo docs/BOOTSTRAP.md, state luu o bucket rieng pulumi-bootstrap-poc-<account>.
+// Admin chay tay theo docs/SETUP.md, state luu o bucket rieng pulumi-bootstrap-poc-<account>.
 // Pipeline workload khong co quyen sua project nay.
 package main
 
