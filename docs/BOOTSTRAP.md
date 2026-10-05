@@ -9,7 +9,7 @@
 | ECR `poc-app`                                                | [`registry/module.go`](../infra/bootstrap/internal/registry/module.go)         |
 | GitHub OIDC provider, role CI preview/deploy, role bootstrap | [`ciiam/`](../infra/bootstrap/internal/ciiam/)                                 |
 
-Config: [`Pulumi.yaml`](../infra/bootstrap/Pulumi.yaml).
+Config của stack `poc` nằm trong [`Pulumi.poc.yaml`](../infra/bootstrap/Pulumi.poc.yaml) (giống file env: region, prefix, repo GitHub, `importExisting`, `expectedAccount` đã mã hoá). `Pulumi.yaml` chỉ khai báo tên project và runtime.
 
 ## Setup một lần (admin, chạy tay)
 
@@ -47,15 +47,15 @@ pulumi stack change-secrets-provider "awskms://alias/pulumi-poc-key?region=ap-so
 **5. Cấu hình GitHub** cho workflow bootstrap:
 
 ```bash
-pulumi stack output bootstrapRoleArn
+pulumi stack output --show-secrets
 ```
 
 - Secret `AWS_ROLE_BOOTSTRAP` = ARN trên.
 - Environment `bootstrap`: bật _Required reviewers_, giới hạn deployment branch `main`.
 
-Ngoài ra lấy ARN cho các secret của workload: `pulumi stack output previewRoleArns` / `deployRoleArns`.
+Output bị che `[secret]` nếu thiếu `--show-secrets`. Các secret của workload lấy từ `previewRoleArns` / `deployRoleArns` trong cùng output.
 
-Commit `Pulumi.poc.yaml`.
+Commit `Pulumi.poc.yaml` (đã có `expectedAccount` mã hoá và `secretsprovider` KMS).
 
 ## Vận hành (CI)
 

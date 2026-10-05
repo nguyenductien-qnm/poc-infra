@@ -1,7 +1,7 @@
 config:
   aws:region: ap-southeast-1
   # true: tiep nhan resource dang co (tao tay/script). Sau khi up import xong, doi thanh false.
-  infra-bootstrap:importExisting: "true"
+  infra-bootstrap:importExisting: "false"
   infra-bootstrap:namePrefix: poc
   infra-bootstrap:stateBucketPrefix: pulumi-state-poc
   infra-bootstrap:secretsKeyAlias: alias/pulumi-poc-key
@@ -28,3 +28,7 @@ config:
       branch: main
       previewDescription: CI Preview role cho Production (Read-Only)
       deployDescription: CI Deploy role cho moi truong Production
+  infra-bootstrap:expectedAccount:
+    secure: v1:fMMv1JKPYlaQe6+o:6ov7I/iaN6M5Z1A22P4fGLix5c78GUqRE0aCAg==
+secretsprovider: awskms://alias/pulumi-poc-key?region=ap-southeast-1
+encryptedkey: AQICAHi+3Okk2yf/lESn8DwqfJBDJdSKTARmnF3agQMQKpXZCAG7n3uSgtOsVeC1mwn4pnmVAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMoHIH3B3/sbEwBLDTAgEQgDsm7trxBuGVf9khgLwPpSFbjIb6RDzdusJSvFucWedvi+xGWtpqFzOalCdwYA1gXR0RxXP0/3vnPd0iuQ==
