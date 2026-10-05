@@ -1,39 +1,32 @@
-# Pulumi Go skill setup
+# Pulumi Go skill pack
 
-This folder is the complete portable pack: instructions, two read-only reviewer contracts, verifier/tests and Codex/Claude adapter templates. It needs no host repository documentation or particular infrastructure layout. Application builds/tests are outside its scope.
+Portable pack: a router ([SKILL.md](SKILL.md)), two workflows, two references, two read-only reviewer contracts, a static verifier with tests, and Claude/Codex adapter templates. It does not depend on the host repository.
+
+## Install
+
+1. Copy this folder to `.agents/skills/pulumi` in the target Git repository.
+2. Copy [adapters/claude](adapters/claude) into `.claude/` and/or [adapters/codex](adapters/codex) into `.codex/`. Merge hook entries into existing settings; do not overwrite other hooks or a conflicting agent/skill.
+3. Check the installation: `python -B scripts/verify.py --repo-root <repo> --runtime claude` (or `codex`).
+4. Start a new session and trust the hooks through the runtime's normal controls.
+
+Requires Python 3.11+. Claude started below the repository root may need `--settings` pointing at the root `.claude/settings.json`.
+
+Invoke `/pulumi adopt|verify` in Claude or `$pulumi adopt|verify` in Codex, and the reviewers by name. Reviewers inherit the model and get read-only tools.
 
 ## Standalone checks
-
-Requires Python 3.11+ available as `python`. From this folder, run:
 
 ```sh
 python -B scripts/verify.py
 python -B -m unittest discover -s scripts -p test_verify.py
 ```
 
-The static verifier needs no Git, cloud credentials, Pulumi project or installed runtime adapters. Mechanism tests require Git and create isolated temporary repositories for optional integration. Checks do not run Go, contact cloud services or establish production readiness.
+Static only: no Go, no cloud, no Pulumi project needed. The tests need Git.
 
-## Optional project integration
+## Hooks
 
-Copy this complete folder to `.agents/skills/pulumi` in the target Git repository. This is the installation location expected by the bundled native adapters; the target's Pulumi projects and Go modules may be anywhere.
+- SessionStart checks pack integrity.
+- PostToolUse (Edit/Write, plus Codex `apply_patch`): edits to Pulumi projects, Pulumi Go modules or CI config that references Pulumi add a short "checks are stale" reminder. Edits to the pack or its adapters also rerun the pack checks. Application modules stay silent.
 
-Copy the chosen runtime's agent/skill adapter files from [Codex templates](adapters/codex) or [Claude templates](adapters/claude) into the corresponding `.codex` or `.claude` paths. Merge the template's hook entries into existing configuration, preserving other hooks/settings. Do not overwrite a conflicting agent or skill silently. Installing one runtime does not require the other.
+Hooks are advisory: 5 s timeout, 2 s budget, 64 KiB input. A failed, missing or untrusted hook is not a pass, and a reminder does not mean checks ran. Shell/MCP writes and external editors are not seen. For removed Pulumi references in CI files, hooks use the supplied pre-edit text or a bounded `git show HEAD`.
 
-From this folder, check the selected installation explicitly:
-
-```sh
-python -B scripts/verify.py --repo-root "/path/to/target" --runtime codex
-python -B scripts/verify.py --repo-root "/path/to/target" --runtime claude
-```
-
-Start a new session after configuration changes. Review/trust project configuration and exact hook definitions through the runtime's normal controls; never persist trust or bypass approvals automatically. For Claude launched below the target root, pass `--settings` pointing to its root `.claude/settings.json` if that runtime does not load it automatically. All commands use `python`, including CMD/PowerShell launchers. No global configuration, symlinks or installer are required.
-
-Use `$pulumi adopt` / `$pulumi verify` in Codex or `/pulumi adopt` / `/pulumi verify` in Claude. Invoke `pulumi-component-reviewer` or `pulumi-delivery-reviewer` by name when their risk is relevant. Runtime adapters inherit model choices; the primary supplies checks, and reviewers inspect source only. A read-only filesystem sandbox does not make other exposed tools read-only; follow reviewer tool restrictions.
-
-## Hooks and limits
-
-SessionStart checks pack integrity. PostToolUse handles Edit/Write and Codex apply_patch, then uses target Pulumi configuration and Go module dependencies to identify infrastructure changes. It also covers pack and Pulumi delivery configuration edits. Application modules are outside the filter. Mixed modules, external editors, shell/MCP writes and unsupported payloads may require manual verification; a reminder never proves that Go, preview or review ran.
-
-For delivery files whose Pulumi references were removed, hooks use supplied pre-edit text or bounded read-only Git history. Deleted untracked files without a supplied preimage, large/unavailable historical content and ambiguous mixed modules require manual verification.
-
-Hooks are advisory, with a 5-second timeout, 2-second verification budget and 64 KiB input limit. Failures, missing tools, disabled/untrusted hooks and unsupported payloads are not passes. Diagnostics do not echo payloads. Native runtime support must be verified separately for the actual CLI/version/OS; static/configured-command tests do not prove native feedback. Changed definitions require review/trust again.
+Runtime docs: [Claude hooks](https://code.claude.com/docs/en/hooks), [Claude subagents](https://code.claude.com/docs/en/sub-agents), [Codex skills](https://learn.chatgpt.com/docs/build-skills), [Codex subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents), [Codex hooks](https://learn.chatgpt.com/docs/hooks).

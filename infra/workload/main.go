@@ -18,7 +18,7 @@ func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
 		cfg := config.New(ctx, "")
 
-		// 1. Doc config theo docs/PLAN.md tu Pulumi.<stack>.yaml
+		// 1. Doc config tu Pulumi.<stack>.yaml
 		expectedAccount := cfg.Require("expectedAccount") // secret: khong commit account ID dang plaintext
 		vpcCidr := cfg.Require("vpcCidr")
 		desiredCount := cfg.RequireInt("desiredCount")

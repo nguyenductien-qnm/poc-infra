@@ -1,12 +1,19 @@
-# Go components and ownership
+# Components, ownership and workload wiring
 
-Locate the target Pulumi project, Go module and composition roots. Read the affected packages and consumers before editing; package and project layouts belong to the target project.
+- Read and validate config (account, region, environment) at composition roots; pass values through concrete Args. Keep Pulumi Input/Output and secret semantics; do not extract values through shell commands.
+- Use a ComponentResource for a cohesive capability with useful outputs; plain helpers need no wrapper. Follow existing constructor conventions and verify parent/provider propagation to children.
+- Creating, consuming and importing differ. External IDs come from an explicit contract; import transfers management. Never leave a resource with two IaC owners.
+- In refactors keep type tokens, logical names, parents and physical names, or add aliases. List expected replacements and deletions, especially for stateful resources.
+- Split projects or stacks only for real ownership, lifecycle, permission or blast-radius boundaries.
+- Config flags and outputs need an actual consumer.
 
-- Read and validate configuration at roots, including target account/subscription, region and environment where applicable. Pass explicit dependencies through concrete Args/Outputs; preserve Pulumi Input/Output and secret semantics instead of extracting runtime values through shell commands.
-- Compose ordinary Go packages directly. Use ComponentResource for a cohesive capability with useful ownership and outputs; small helpers need no wrapper. Follow existing constructor conventions. Verify parent/provider/resource-option propagation through the actual SDK and affected children.
-- Separate creating a resource, consuming one managed elsewhere, and importing ownership. External IDs/ARNs must come from an explicit contract. Importing transfers management; it is not a substitute for referencing externally managed infrastructure. Avoid two IaC owners.
-- Preserve type tokens, logical names, parents and physical-name behavior during refactors. Explain aliases or other migration steps and review expected replacements/deletions, particularly stateful resources, before authorized apply.
-- Split projects/stacks when ownership, lifecycle, permission or blast-radius boundaries warrant it. Do not mandate a fixed number of projects, a stack per component or an environment-specific branch inside reusable code.
-- Configuration flags and outputs must have actual consumers. Add capabilities in existing packages when possible; publish a library only when reuse warrants its compatibility cost.
+## Workload wiring
 
-Use APIs verified in the target source or installed SDK. Clearly label unimplemented APIs as proposals. A successful build is evidence of local correctness, not proof of safe resource identity, cloud acceptance or live behavior.
+Check that IaC settings match the workload's declared contract:
+
+- Ports, protocol and health checks agree across service, load balancer and network rules.
+- Producer outputs and consumer inputs agree on host, port and protocol.
+- Secret references and the consuming identity's permissions match; inspect schemas, not secret values.
+- Image reference and platform match what upstream supplied.
+
+A successful build proves local correctness only, not cloud acceptance or live connectivity.

@@ -60,7 +60,7 @@ func newAppIamRoles(ctx *pulumi.Context, name, stack string, dbSecretArn pulumi.
 		return nil, fmt.Errorf("creating task role: %w", err)
 	}
 
-	// Theo docs/PLAN.md: Task role co policy bedrock:InvokeModel
+	// Task role co policy bedrock:InvokeModel
 	_, err = iam.NewRolePolicy(ctx, fmt.Sprintf("%s-bedrock-policy", name), &iam.RolePolicyArgs{
 		Role:   taskRole.Name,
 		Policy: pulumi.String(allowPolicy("*", "bedrock:InvokeModel")),

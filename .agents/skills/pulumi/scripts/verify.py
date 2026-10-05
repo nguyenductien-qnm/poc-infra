@@ -17,8 +17,6 @@ CORE_FILES = (
     "README.md",
     "references/components.md",
     "references/delivery.md",
-    "references/runtime.md",
-    "references/sdk-verification.md",
     "workflows/adopt.md",
     "workflows/verify.md",
     "agents/component-reviewer.md",
@@ -267,10 +265,19 @@ def _git_preimage_has_pulumi(path, repo_root, started):
         return False
 
 
+def _pack_file(path, repo_root):
+    """Pack sources and installed Pulumi adapters are the only edits that warrant rerunning pack checks."""
+    relative = path.relative_to(repo_root)
+    if relative.parts[:3] == (".agents", "skills", "pulumi"):
+        return True
+    # Unrelated skills, commands and agents under .claude/.codex stay silent.
+    return relative.as_posix() in {f".{runtime}/{name}" for runtime in ("codex", "claude") for name, _ in _templates(Path(), runtime)}
+
+
 def _relevant(path, repo_root, payload=None, runtime=None, started=None, changed=None):
     relative = path.relative_to(repo_root)
-    parts, name = relative.parts, relative.name
-    if len(parts) >= 3 and parts[:3] == (".agents", "skills", "pulumi"):
+    name = relative.name
+    if _pack_file(path, repo_root):
         return True
     if name == "Pulumi.yaml" or (name.startswith("Pulumi.") and path.suffix.lower() in (".yaml", ".yml", ".json")):
         return True
@@ -302,15 +309,19 @@ def hook(pack_root, runtime, payload, repo_root):
         raise ValueError("hook cwd outside repository; run manual verify")
     event = payload["hook_event_name"]
     started = time.monotonic()
-    stale = False
+    stale = pack_changed = False
     if event == "PostToolUse":
         for changed in changed_paths(payload, runtime):
             candidate = (Path(cwd).resolve() / changed).resolve()
             if candidate.is_relative_to(repo_root) and _relevant(candidate, repo_root, payload, runtime, started, changed):
                 stale = True
-                break
+                pack_changed = pack_changed or _pack_file(candidate, repo_root)
         if not stale:
             return None
+        if not pack_changed:
+            # Infra edits only invalidate earlier evidence; rereading the pack adds nothing.
+            return {"hookSpecificOutput": {"hookEventName": event, "additionalContext":
+                    "Pulumi infra files changed; earlier checks/review are stale. Run verify before reporting results."}}
     remaining = 2.0 - (time.monotonic() - started)
     if remaining <= 0:
         raise TimeoutError("hook check timed out; verification incomplete")
@@ -321,9 +332,9 @@ def hook(pack_root, runtime, payload, repo_root):
     findings.extend(verify_installation(pack_root, repo_root, runtime, budget=remaining))
     findings = findings[:MAX_FINDINGS]
     message = ("Pulumi pack checks failed: " + " | ".join(findings) if findings else
-               "Pulumi pack local static checks passed; no Go, cloud, or independent review was run.")
+               "Pulumi pack static checks passed (no Go, cloud or review).")
     if stale:
-        message += " Relevant files changed; previous checks/review may be stale. Run manual verify for ambiguous or uncovered edits."
+        message += " Pack files changed; earlier checks/review are stale."
     return {"hookSpecificOutput": {"hookEventName": event, "additionalContext": message}}
 
 

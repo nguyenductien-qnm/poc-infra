@@ -131,6 +131,42 @@ class PortablePackTests(unittest.TestCase):
                 self.assertIsNotNone(output)
                 self.assertIn("stale", output["hookSpecificOutput"]["additionalContext"])
 
+    def test_only_pack_edits_rerun_pack_checks(self):
+        self.install("claude")
+        (self.pack / "references" / "delivery.md").unlink()
+        infra = self.module.hook(
+            self.pack, "claude",
+            self.payload("PostToolUse", tool_name="Edit", tool_input={"file_path": "platform/live/main.go"}), self.repo,
+        )
+        self.assertNotIn("failed", infra["hookSpecificOutput"]["additionalContext"])
+        self.install("codex")
+        for relative in (".agents/skills/pulumi/SKILL.md", ".claude/settings.json",
+                         ".claude/agents/pulumi-component-reviewer.md", ".codex/agents/pulumi-delivery-reviewer.toml"):
+            with self.subTest(relative=relative):
+                pack = self.module.hook(
+                    self.pack, "claude",
+                    self.payload("PostToolUse", tool_name="Edit", tool_input={"file_path": relative}), self.repo,
+                )
+                self.assertIn("failed", pack["hookSpecificOutput"]["additionalContext"])
+
+    def test_unrelated_runtime_files_are_silent(self):
+        self.install("claude")
+        self.install("codex")
+        unrelated = {
+            ".claude/commands/release.md": "# Release\n",
+            ".claude/skills/other/SKILL.md": "---\nname: other\ndescription: unrelated\n---\n",
+            ".codex/agents/other.toml": "name = \"other\"\n",
+        }
+        for relative, text in unrelated.items():
+            path = self.repo / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+            with self.subTest(relative=relative):
+                self.assertIsNone(self.module.hook(
+                    self.pack, "claude",
+                    self.payload("PostToolUse", tool_name="Edit", tool_input={"file_path": relative}), self.repo,
+                ))
+
     def test_app_module_is_silent_and_mixed_patch_is_relevant(self):
         self.install("codex")
         for relative in ("service/main.go", "service/go.mod"):

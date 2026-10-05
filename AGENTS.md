@@ -1,11 +1,12 @@
 # Infrastructure work
 
-## Task routing
+Use the [Pulumi Go skill](.agents/skills/pulumi/SKILL.md) for infrastructure and its delivery: `/pulumi adopt …` / `/pulumi verify …` in Claude, `$pulumi adopt …` / `$pulumi verify …` in Codex. The skill is generic; discover this repository's roots, stacks and decisions from source and docs. Application implementation and builds are outside it.
 
-Use the standalone [Pulumi Go skill](.agents/skills/pulumi/SKILL.md) for infrastructure and its GitOps delivery. Discover this project's actual roots, contracts and decisions; the skill supplies no repository-specific architecture. Application implementation and builds are outside the skill. Codex uses `$pulumi adopt …` / `$pulumi verify …`; Claude uses `/pulumi adopt …` / `/pulumi verify …`.
+Even without the skill: never put secrets, tokens, account IDs or ARNs in plaintext, and do not run cloud/state writes or dispatch deployments unless the task authorizes it.
 
-Follow the existing code style. Keep config at composition roots, concrete Args/Outputs, direct composition and one owner per resource; do not add a framework/registry. Preserve resource identity or provide a reviewed migration/alias. Do not put plaintext internal secrets/tokens/account IDs/ARNs in new code/docs/logs or fetch secret values to inspect schemas.
+## Conventions
 
-Follow the [verify workflow](.agents/skills/pulumi/workflows/verify.md); report actual results and missing checks. Respect applicable project decisions and authorization. Do not automatically perform cloud/state writes, change external settings or enable deployment/reconciliation.
-
-Use scoped, lowercase English Conventional Commits. Write this skill pack's instructions, documentation and code comments in English. Preserve existing conventions elsewhere: unaccented Vietnamese code comments and accented Vietnamese guides. Update relevant guidance when behavior changes; use existing documentation rather than adding another report.
+- Follow the existing code style.
+- Use scoped, lowercase English Conventional Commits.
+- Write the skill pack's instructions, docs and code comments in English. Elsewhere keep unaccented Vietnamese code comments and accented Vietnamese guides.
+- Update relevant docs when behavior changes; do not add separate report files.
