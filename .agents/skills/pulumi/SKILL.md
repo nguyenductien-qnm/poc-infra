@@ -1,23 +1,25 @@
 ---
 name: pulumi
-description: Adopt or verify Pulumi Go changes in this repository, including components, bootstrap ownership, AWS runtime wiring and GitHub delivery. Use for infrastructure or app-to-infrastructure contract changes; ordinary app-only edits need no infrastructure review.
+description: Adopt, implement or verify Pulumi Go infrastructure and its GitOps delivery. Use for resource composition, ownership, state, secrets, identity, workload configuration or infrastructure pipelines; application implementation and builds are outside this skill.
 ---
 
-# Pulumi Go pack
+# Pulumi Go infrastructure
 
-Read [current-contract.md](references/current-contract.md) first. Owner decisions in issue comments take precedence over the original Epic checklist. Inspect the relevant implementation before proposing a change; this pack does not authorize cloud operations.
+Inspect the target project's Pulumi configuration, Go modules and applicable repository guidance before editing. Determine the requested outcome, affected stacks, resource owners and delivery model. Existing project decisions are task context; this skill requires no particular repository, topology, backend, cloud or application.
 
-Choose **adopt** to propose configuration/composition: read [adopt.md](workflows/adopt.md). Choose **verify** to review a diff and report checks: read [verify.md](workflows/verify.md). Load only the references needed:
+For adoption or implementation, read [adopt.md](workflows/adopt.md). For validation or review, read [verify.md](workflows/verify.md). Load the smallest relevant set:
 
 | Change | Reference | Review when risk warrants it |
 | --- | --- | --- |
-| Args/Outputs, composition, naming, ownership or resource identity | [components.md](references/components.md) | `pulumi-component-reviewer` |
-| Backend, secrets, OIDC/IAM or workflow | [delivery.md](references/delivery.md) | `pulumi-delivery-reviewer` |
-| ECS task, app env/health, RDS or image contract | [runtime.md](references/runtime.md) | Component reviewer for cross-component changes |
-| SDK field, version or AWS/API value not established by code | [sdk-verification.md](references/sdk-verification.md) | Usually local verification |
+| Go composition, ownership, resource identity or migration | [components.md](references/components.md) | `pulumi-component-reviewer` |
+| State, secrets, deployment identities or GitOps delivery | [delivery.md](references/delivery.md) | `pulumi-delivery-reviewer` |
+| IaC-managed workload configuration | [runtime.md](references/runtime.md) | Component reviewer when contracts cross resources |
+| Uncertain SDK, provider or API behavior | [sdk-verification.md](references/sdk-verification.md) | Focused local or official-source verification |
 
-State the chosen mode, references and reviewer briefly. Default to one matched reviewer for a consequential change. Use a second only for an independent component/delivery risk or when requested; small documentation changes can use self-review. When subagents are unavailable or unauthorized, report self-review explicitly.
+State the route briefly. Use one matched reviewer for a consequential change; use both for independent composition and delivery risks. Small documentation changes can use self-review. Disclose self-review when subagents are unavailable.
 
-Keep Go composition direct, with concrete Args/Outputs and one owner per resource. Do not add a registry, generic module engine, mandatory component wrapper for every helper, or support for services without a consumer. Configuration stays at the composition roots. Do not turn deferred production requirements into PoC release gates or silently undo owner decisions.
+Keep configuration at composition roots, concrete Args/Outputs and one owner per resource. Preserve resource identity or explain a reviewed migration. Do not add a registry, generic module engine or services without a consumer.
 
-Hooks and the manual checker detect local pack problems and stale checks. They do not establish IAM enforcement, approve deployment or prove a live workload healthy.
+Application contracts and supplied artifact references are read-only inputs for IaC wiring. Application implementation, build/tests and container builds are outside this skill. Cloud/state writes and deployment require task authorization; the skill does not grant it.
+
+The [pack setup](README.md) describes optional Codex/Claude adapters, advisory hooks and standalone checks. Hooks validate the pack and remind about stale evidence; they do not run Go checks, enforce IAM, approve deployment or prove live health.

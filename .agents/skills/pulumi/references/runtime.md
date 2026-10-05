@@ -1,15 +1,15 @@
-# App ↔ ECS/RDS contract
+# IaC-managed workload wiring
 
-When changing environment variables, images, health checks or data wiring, read `app/main.go`, the Dockerfile and `infra/internal/{app,platform,data}`. The [current contract](current-contract.md) records the PoC exceptions explicitly.
+Inspect the target Pulumi resources and their declared consumer contracts. This reference covers configuration owned by IaC; application implementation, build/tests and container builds are outside this skill.
 
-| Value | Where it must match |
+| Configuration | Trace in the target infrastructure |
 | --- | --- |
-| Port 80 (`shared.AppPort`), `/health` | HTTP app, ECS container port, target group/health path |
-| DB host/port/name/user | `data/rds.go`, `app/service.go`, app DSN; `Address` is the host, while `Endpoint` includes the port |
-| DB password | ECS `valueFrom` uses the ARN + JSON selector `:password::`; the execution role reads the correct secret |
-| ECR URL/imageTag | Bootstrap repository, workload config, build/push workflow; a tag is required and cannot be `latest` |
-| Logging/platform | stdout/awslogs, Docker `linux/amd64` and the Fargate task |
+| Ports, protocols and health-check settings | Compute/service, routing and network rules agree with the declared workload contract; do not assume a fixed port or endpoint |
+| Data/service endpoints | Producer outputs and consumer inputs agree on host, port, protocol and ownership |
+| Secret references | Provider-specific selectors, secret markings and consuming identity permissions match the documented schema |
+| Artifact reference and platform | Supplied immutable artifact, runtime architecture and deployment configuration agree |
+| Runtime permissions and operations | Identity, exposure, logging, rollout and recovery settings match the target's requirements |
 
-Do not fetch passwords to check wiring. Tracing/build only verifies the local contract, not DB connectivity or ECS health. Pilot #20 requires a DB connection or a round-trip with cleanup; `/health` returning 200 is insufficient.
+Verify provider-specific fields with source/SDK documentation. Read a consumer contract when needed, without taking ownership of the application's tests or build. Use schema metadata or nonsensitive fixtures; do not fetch secret values merely to inspect keys.
 
-Private tasks/TLS, DB encryption/backup/Multi-AZ/protection, removing the Bedrock demo and deployment rollback are deferred. For production work, propose simple config with an actual consumer and effect; distinguish proposed changes from current behavior.
+Evaluate relevant network exposure, transport security, data encryption, backups, retention and deletion protection for the declared target. Identify explicit exceptions and their consequences. Source checks do not prove live connectivity, application behavior or workload health; report that evidence as missing when unavailable.

@@ -101,38 +101,11 @@ Quy ước: local chỉ chạy `preview` workload, mọi `up` workload đi qua C
 - PR preview chạy code của PR (chưa review) bằng role preview có `ReadOnlyAccess` + `kms:Decrypt`. Chấp nhận cho POC để có diff ngay ở PR: chỉ người trong team mở PR, PR từ fork không được GitHub cấp OIDC token. Production nên chặn bằng approval trước khi job preview nhận credentials.
 - Action trong workflow pin theo commit SHA nhưng vẫn ở major cũ (`checkout@v4`, `setup-go@v5`...). Nâng major làm riêng.
 
-## Pulumi AI pack (#22)
+## Pulumi Go infrastructure skill
 
-This pack follows the router/references/workflows/agents/hooks structure from [Taurus](https://github.com/KKloudTarus/taurus-skill), scoped to this repository. Shared content lives in [`.agents/skills/pulumi`](.agents/skills/pulumi/SKILL.md); `.claude/skills/pulumi` is an adapter. The [current contract](.agents/skills/pulumi/references/current-contract.md) records the owner's PoC decisions in #15–#19; production hardening remains a separate proposal. The owner will complete the documentation in #14/#20 after the pack; this PR has not run the pilot.
+The standalone [Pulumi Go skill](.agents/skills/pulumi/SKILL.md) covers infrastructure composition, state, identities, workload configuration and GitOps delivery. Its complete distributable folder includes instructions, read-only reviewer contracts, scripts/tests and optional Codex/Claude adapter templates. It does not depend on this repository's infrastructure, documents or history.
 
-- **Adopt:** Codex `$pulumi adopt <workload/env>`; Claude `/pulumi adopt <workload/env>`. Returns configuration/composition, ownership and missing inputs. The PoC has no existing-network API: the pack reports that limitation and proposes a separate task.
-- **Verify:** `$pulumi verify <diff/scope>` or `/pulumi verify <diff/scope>`. The primary agent runs appropriate local checks and calls `pulumi-component-reviewer` for identity/composition or `pulumi-delivery-reviewer` for IAM/state/CI. Use one reviewer by default; explicitly label self-review when subagents are unavailable or unauthorized.
-- **Reviewers:** Codex uses `.codex/agents/*.toml` with a read-only sandbox; Claude uses `.claude/agents/*.md` with only Read/Grep/Glob. Both read the shared contract and do not run checks, cloud operations or apply. The Codex sandbox restricts filesystem writes; it does not make the session's MCP tools read-only. Reviewer instructions prohibit cloud/MCP use, and the primary agent must inspect the tools available in the active runtime.
-
-### Enable and fallback
-
-Requires Git and Python **3.11+**, with no added pip dependencies. Windows requires a real `python.exe` on PATH (not the WindowsApps `python3` shim); Codex runs `commandWindows` through the session shell, which may be PowerShell. The Python launcher works in both CMD and PowerShell without CMD `for /f` syntax. On Linux/macOS, Codex uses `python3`; Claude's exec-form calls `python`. Both locate the repository root through Git: `${CLAUDE_PROJECT_DIR}` may be the subdirectory where Claude was opened. No symlinks, global installer, HOME changes, Git hooks or automatic AWS workflow activation are required.
-
-Start a new session from the checkout. In Codex, trust the project `.codex` directory, open `/hooks`, read both commands and trust the exact definitions; changed hooks require another review. Claude reads the project's `.claude/settings.json` after project trust; check `/hooks` and ensure your settings have not disabled hooks. When opening Claude from a subdirectory, pass `--settings "<repo-root>/.claude/settings.json"`: the tested CLI version did not automatically load root hooks in this case. Do not persist trust automatically or bypass sandbox/approval controls for acceptance testing. Request reviewers by their full names; adapters do not change the user's selected model or effort.
-
-SessionStart runs the static verifier. PostToolUse accepts only Edit/Write (plus apply_patch in Codex), filters files in the pack/infra/app/workflows scope, then runs a lightweight check and reminds the agent that earlier checks/reviews may be stale. The apply_patch header parser accepts both LF and CRLF, including explicitly scoped files such as README and verifier scripts. Hooks do not build/test the entire repository on every edit, format files or write to the cloud. Shell, MCP, editors outside the runtime and unsupported tool payloads are not covered; run the verifier manually before handoff:
-
-```bash
-python -B scripts/verify-pulumi-pack.py
-python -B -m unittest discover -s scripts -p test_pulumi_pack.py
-```
-
-Both commands also work in PowerShell at the repository root. The verifier checks links/frontmatter, agents/adapters, hook wiring and remote action SHAs; it does not prove runtime behavior, IAM correctness or live state. Hooks have a 5-second timeout, a 2-second check budget and a maximum input size of 64 KiB; diagnostics do not echo payloads. Failed, malformed, timed-out, Python-missing, disabled or untrusted hooks **do not count as a pass**. The manual verifier returns a nonzero exit code on failure and works without hooks/subagents; hooks are advisory, not an approval or security boundary.
-
-### Verification coverage
-
-- Windows: Python 3.14.7, Codex CLI 0.156.1, Claude Code 2.1.284. Local verifier/tests have run, covering configured commands through CMD and PowerShell on PATH, paths with spaces, subdirectories, malformed payloads, drift, broken links, a missing interpreter and timeout budgets. `Pulumi Pack Checks` CI checks the mechanism without AWS on Ubuntu/Windows; it does not invoke inference or replace runtime smoke tests.
-- Native Windows: both CLIs read the router and exercised four cases — adopting a new network with pending inputs; reporting the unsupported existing-VPC API; flagging identity/physical-name replacement risks for a stateful rename without aliases; and requesting a fix for wildcard OIDC trust. Both successfully invoked the exact `pulumi-component-reviewer` and `pulumi-delivery-reviewer` agents without substituting generic agents. Codex used a model available in `codex debug models` and a normal `exec` session: `--ephemeral` caused reviewer spawning to fail with `no thread with id` in the tested version. Claude used user + project settings to preserve provider/login configuration; loading only project settings previously caused `Not logged in`.
-- Claude SessionStart and PostToolUse ran in a temporary Git copy whose path contained spaces, from `infra/workload` with `--settings` pointing to the root: an `app/` file received a stale reminder, while an out-of-scope file stayed silent. This smoke test exposed the `${CLAUDE_PROJECT_DIR}` issue; the Git-root launcher and regression test fixed it.
-- Codex native hooks **PASS**, based on the user's acceptance report from a normal session at `4d745a5`: SessionStart emitted `additionalContext`; out-of-scope apply_patch stayed silent, while patches in `app/` and `infra/workload/` emitted stale reminders, including a filename with spaces. The verifier and 13 mechanism tests passed; probes were removed and the working tree was clean. This smoke test did not run Go, cloud operations or independent review; the CLI source reviews above ran separately. Changed definitions still require review/trust through `/hooks`; direct command and JSON/TOML checks do not replace a native pass.
-- `Pulumi Pack Checks` CI is awaiting maintainer approval for the fork workflow; there is no hosted pass yet. Native Linux/macOS runtimes have not been tested; local/CI mechanism checks are insufficient to claim native support on those operating systems. Smoke findings are source/proposal reviews; Go, cloud, preview and pilot checks have not run.
-
-Mapping: #14 architecture decisions; #15–#19 implementation and owner exceptions; #22 the pack; #20 subsequent documentation/pilot/sync. The pack does not satisfy live/pilot acceptance, reopen #21 or turn the production backlog into PoC implementation requirements.
+See the [pack setup guide](.agents/skills/pulumi/README.md) for standalone checks, project integration, hook trust and limitations. Application implementation, build/tests and container builds remain outside the skill.
 
 ## Dọn dẹp
 

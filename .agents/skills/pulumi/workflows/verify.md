@@ -1,16 +1,17 @@
 # Verify
 
-Read the diff, current contract and relevant implementation. The primary runs checks; the reviewer receives the scope, diff/base, relevant files, check results and missing evidence.
+Identify the infrastructure diff, target Pulumi Go projects/modules, applicable decisions and expected impact. The primary runs checks; reviewers receive the scope, diff/base, relevant files, actual results and missing evidence. App-only work is outside this workflow.
 
 ## Checks by change
 
-- Pack/adapters/hooks: at the repository root, run `python -B scripts/verify-pulumi-pack.py`, then `python -B -m unittest discover -s scripts -p test_pulumi_pack.py`. No AWS calls or Go build.
-- Go infrastructure: in `infra/`, run `go mod tidy -diff`, `go vet ./...`, `go test ./...` and `go build ./...`.
-- App or app-to-infrastructure changes: in `app/`, run `go mod tidy -diff`, `go vet ./...`, `go test ./...` and `go build -o <temporary-path-outside-repo> .`; check environment variables/ports/secrets/images in the task definition. Build the Docker image when the container changes and a runtime is available.
-- Authorized workload preview: the operator selects backend/stack/imageTag first; the primary runs `pulumi preview --diff` when the task permits it. Do not read live state, change config or dispatch workflows by default to verify. Do not run up/destroy/import/refresh or bypass gates. Report missing live checks as unknown; do not replace them with mocks and claim a pass.
+- Pack changes: from this skill's directory, run `python -B scripts/verify.py` and `python -B -m unittest discover -s scripts -p test_verify.py`. These verify harness mechanics, not infrastructure. Optional runtime installation checks are in the [setup guide](../README.md).
+- Go infrastructure: find affected module roots and existing repository checks. Inspect tests for cloud/state side effects before running them. Use appropriate formatting checks, `go mod tidy -diff` when supported by the selected Go version, `go vet ./...`, `go test ./...` and `go build ./...` within those infrastructure modules. Run focused checks when the change warrants them; avoid application modules.
+- IaC workload wiring: inspect ports, environment variables, secret references, health-check settings and supplied artifact references in Pulumi resources. A declared consumer contract is read-only input; do not run application tests/builds or container builds.
+- Infrastructure GitOps: trace desired revision/configuration, target stack, deployment identity, reviewed inputs, authorization, concurrency, promotion and drift/recovery ownership. Distinguish implemented enforcement from recommendations; report absent controls and explicit exceptions against the target's requirements.
+- Authorized preview: inspect the program and select the intended backend, stack, configuration and deployment identity before `pulumi preview --diff`. Preview can execute arbitrary Go and read APIs/state. Run it only in an authorized context; do not mutate config, dispatch pipelines, run up/destroy/import/refresh or bypass gates by default. Missing live checks stay unknown; mocks do not prove cloud acceptance or runtime behavior.
 
 ## Review
 
-Args/Outputs/identity/ownership → `pulumi-component-reviewer`; backend/IAM/workflow → `pulumi-delivery-reviewer`. Invoke the agent by its runtime name and provide local results; default to one reviewer. Use both only for two independent risks. If subagents are unavailable, perform and disclose self-review; the primary validates findings before editing.
+Composition/resource identity/ownership → `pulumi-component-reviewer`; state/deployment identities/GitOps → `pulumi-delivery-reviewer`. Provide the target context and local results; use both only for independent risks. When reviewers are unavailable, perform and disclose self-review. Validate findings against source or runtime evidence before editing.
 
 Output: `pass | changes-requested | blocked`, scope/commit, actual checks (commands + results), findings with file:line/scenario, and unknowns. A pass applies only to the verified scope and is not production approval. A stale-check reminder does not mean checks ran. Do not create large reports/evidence in the repository.
