@@ -1,6 +1,6 @@
 ---
 name: pulumi-delivery-reviewer
-description: Read-only review of bootstrap state, CI IAM and GitHub delivery.
+description: Read-only review of Pulumi state, deployment identities and GitOps delivery.
 tools: Read, Grep, Glob
 model: inherit
 ---

@@ -7,7 +7,10 @@
           {
             "type": "command",
             "command": "python",
-            "args": ["-c", "import runpy,subprocess,sys;from pathlib import Path;root=Path(subprocess.check_output(['git','rev-parse','--show-toplevel'],text=True,timeout=2).strip());sys.argv[0]=str(root/'scripts/verify-pulumi-pack.py');runpy.run_path(sys.argv[0],run_name='__main__')", "--hook", "claude"],
+            "args": [
+              "-c",
+              "import runpy,subprocess,sys;from pathlib import Path;root=Path(subprocess.check_output(['git','rev-parse','--show-toplevel'],text=True,timeout=2).strip());sys.argv[0]=str(root/'.agents/skills/pulumi/scripts/verify.py');sys.argv.extend(['--hook','claude','--repo-root',str(root)]);runpy.run_path(sys.argv[0],run_name='__main__')"
+            ],
             "timeout": 5
           }
         ]
@@ -20,7 +23,10 @@
           {
             "type": "command",
             "command": "python",
-            "args": ["-c", "import runpy,subprocess,sys;from pathlib import Path;root=Path(subprocess.check_output(['git','rev-parse','--show-toplevel'],text=True,timeout=2).strip());sys.argv[0]=str(root/'scripts/verify-pulumi-pack.py');runpy.run_path(sys.argv[0],run_name='__main__')", "--hook", "claude"],
+            "args": [
+              "-c",
+              "import runpy,subprocess,sys;from pathlib import Path;root=Path(subprocess.check_output(['git','rev-parse','--show-toplevel'],text=True,timeout=2).strip());sys.argv[0]=str(root/'.agents/skills/pulumi/scripts/verify.py');sys.argv.extend(['--hook','claude','--repo-root',str(root)]);runpy.run_path(sys.argv[0],run_name='__main__')"
+            ],
             "timeout": 5
           }
         ]
