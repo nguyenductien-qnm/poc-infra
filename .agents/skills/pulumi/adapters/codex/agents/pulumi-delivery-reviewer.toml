@@ -1,0 +1,5 @@
+name = "pulumi-delivery-reviewer"
+description = "Read-only review of Pulumi state, deployment identities and GitOps delivery."
+sandbox_mode = "read-only"
+web_search = "disabled"
+developer_instructions = "Read .agents/skills/pulumi/agents/delivery-reviewer.md from the repository root and follow that review contract. Inspect files only; the primary supplies checks."
