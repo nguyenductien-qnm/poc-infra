@@ -1,5 +1,3 @@
-secretsprovider: awskms://alias/pulumi-poc-key?region=ap-southeast-1
-encryptedkey: AQICAHiRyrDYpmoNFuuoBhq8p9/PrgLTjbtfnOud21njngySsgG0+GCY7b0QKwnVmMKBedsZAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMyFgljZe+ux9ex0oCAgEQgDvjbXRbIvT24YxXP0GXItaetoEJFF4Q25h3dCuN6Pb728GCJLwtetCC3RyMqmxBWLxSFu/3+kIGKmS3Jg==
 config:
   aws:region: ap-southeast-1
   infra-poc:vpcCidr: 10.30.0.0/16
@@ -9,4 +7,6 @@ config:
   infra-poc:deletionProtection: "false"
   infra-poc:ecrRepositoryName: poc-app
   infra-poc:expectedAccount:
-    secure: v1:AedGanHJ1vYIRCVY:HZmfl1t2kpQr/romlisOTMyd3JlPHhiY6cekFg==
+    secure: v1:1QYuQkgY6pQBa/3z:m5mo7yWYJYCBPYgIJbdru4kX40r+acIGEL4U4g==
+secretsprovider: awskms://alias/pulumi-poc-key?region=ap-southeast-1
+encryptedkey: AQICAHi+3Okk2yf/lESn8DwqfJBDJdSKTARmnF3agQMQKpXZCAGaeBLWCTpmsuYX/DrW2PRnAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMaH/ifUG9C0PJS5woAgEQgDucQ/V0TI4FjQ95ZknxZgS8ZD7GCXfKjo0xKlpgzpX2F48JtSg0diNYpJU3wu+gOAG/YKsysr9ezCHifQ==
