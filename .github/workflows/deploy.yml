@@ -26,8 +26,11 @@ env:
   AWS_REGION: "ap-southeast-1"
   # Nhánh -> stack: main -> prod, staging -> staging, dev -> dev
   STACK: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
-  # Commit SHA, dùng 7 ký tự đầu (${IMAGE_TAG::7}) làm image tag ở cả 2 job
+  # Commit SHA, 7 ký tự đầu (${IMAGE_TAG::7}) là tag của image MỚI nếu app/ có đổi.
+  # Tag thực sự dùng để deploy do job preview quyết định (outputs.image_tag): app/ không đổi
+  # so với tag đang chạy thì giữ tag cũ, không build lại, Task Definition không đổi.
   IMAGE_TAG: ${{ github.sha }}
+  ECR_REPOSITORY: poc-app
 
 jobs:
   # ----------------------------------------------------------------------------
@@ -37,10 +40,15 @@ jobs:
   preview:
     name: "Preview (${{ github.ref_name == 'main' && 'prod' || github.ref_name }})"
     runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.preview.outputs.image_tag }}
+      build: ${{ steps.preview.outputs.build }}
 
     steps:
       - name: "Checkout Code"
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0  # Cần lịch sử để so app/ với commit của tag đang chạy
 
       - name: "Setup Go"
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
@@ -57,13 +65,35 @@ jobs:
       - name: "2. Cài đặt Pulumi CLI"
         uses: pulumi/actions@cd99a7f8865434dd3532b586a26f9ebea596894f # v5.5.1
 
-      - name: "3. Pulumi Preview với image tag mới"
+      - name: "3. Quyết định image tag, rồi Pulumi Preview"
+        id: preview
         working-directory: ./infra/workload
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           pulumi login "s3://pulumi-state-poc-${ACCOUNT_ID}?region=${AWS_REGION}"
           pulumi stack select "$STACK"
-          pulumi config set imageTag "${IMAGE_TAG::7}"
+
+          # Mặc định: build image mới tag theo SHA của commit này.
+          # Giữ tag đang chạy (không build) chỉ khi đủ 3 điều kiện:
+          #   1. stack đã có imageTag (khác latest) là SHA của một commit còn trong repo
+          #   2. app/ (gồm Dockerfile, go.mod) giống hệt app/ ở commit đó
+          #   3. image tag đó vẫn còn trong ECR
+          # Thiếu một điều kiện nào thì build, nên lỗi phát hiện chỉ làm build thừa, không bao giờ bỏ sót.
+          TAG="${IMAGE_TAG::7}"
+          BUILD=true
+          CURRENT_TAG=$(pulumi stack output imageTag 2>/dev/null || true)
+          if [ -n "$CURRENT_TAG" ] && [ "$CURRENT_TAG" != "latest" ] \
+             && git cat-file -e "${CURRENT_TAG}^{commit}" 2>/dev/null \
+             && git diff --quiet "$CURRENT_TAG" HEAD -- ../../app \
+             && aws ecr describe-images --repository-name "$ECR_REPOSITORY" --image-ids imageTag="$CURRENT_TAG" >/dev/null 2>&1; then
+            TAG="$CURRENT_TAG"
+            BUILD=false
+          fi
+          echo "image_tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "imageTag=$TAG (build=$BUILD, tag đang chạy: ${CURRENT_TAG:-không có})"
+
+          pulumi config set imageTag "$TAG"
 
           set +e
           pulumi preview --diff > preview_output.txt 2>&1
@@ -72,7 +102,11 @@ jobs:
           cat preview_output.txt
 
           {
-            echo "### Pulumi Preview (\`stack: $STACK\`, image \`${IMAGE_TAG::7}\`)"
+            if [ "$BUILD" = "true" ]; then
+              echo "### Pulumi Preview (\`stack: $STACK\`, image mới \`$TAG\`)"
+            else
+              echo "### Pulumi Preview (\`stack: $STACK\`, app/ không đổi nên giữ image \`$TAG\`, không build)"
+            fi
             echo '```'
             # Job Summary giới hạn 1MB, cắt bớt cho chắc
             head -c 60000 preview_output.txt
@@ -102,6 +136,7 @@ jobs:
           cache-dependency-path: infra/go.sum
 
       - name: "Setup Docker Buildx (Hỗ trợ build container Linux AMD64)"
+        if: needs.preview.outputs.build == 'true'
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: "1. Xác thực AWS qua OIDC (Role Deploy)"
@@ -113,22 +148,27 @@ jobs:
       - name: "2. Cài đặt Pulumi CLI"
         uses: pulumi/actions@cd99a7f8865434dd3532b586a26f9ebea596894f # v5.5.1
 
-      - name: "3. Build & Push Docker Image lên Shared ECR (chỉ tag SHA)"
+      - name: "3. Build & Push Docker Image lên Shared ECR (chỉ tag SHA, bỏ qua nếu app/ không đổi)"
+        if: needs.preview.outputs.build == 'true'
+        env:
+          NEW_TAG: ${{ needs.preview.outputs.image_tag }}
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          ECR_URL="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/poc-app"
+          ECR_URL="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}"
 
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_URL"
-          docker build --platform linux/amd64 -t "$ECR_URL:${IMAGE_TAG::7}" ./app
-          docker push "$ECR_URL:${IMAGE_TAG::7}"
+          docker build --platform linux/amd64 -t "$ECR_URL:${NEW_TAG}" ./app
+          docker push "$ECR_URL:${NEW_TAG}"
 
       - name: "4. Deploy Hạ tầng AWS qua Pulumi Up"
         working-directory: ./infra/workload
+        env:
+          DEPLOY_TAG: ${{ needs.preview.outputs.image_tag }}
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           pulumi login "s3://pulumi-state-poc-${ACCOUNT_ID}?region=${AWS_REGION}"
           pulumi stack select "$STACK"
-          pulumi config set imageTag "${IMAGE_TAG::7}"
+          pulumi config set imageTag "$DEPLOY_TAG"
           pulumi up --yes --diff
 
       - name: "5. Xuất thông tin sau khi Deploy hoàn tất"
