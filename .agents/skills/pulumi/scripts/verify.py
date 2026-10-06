@@ -51,7 +51,7 @@ def _templates(pack_root, runtime):
     names = (["hooks.json", *[f"agents/pulumi-{role}-reviewer.toml" for role in ROLES]]
              if runtime == "codex" else
              ["settings.json", "skills/pulumi/SKILL.md", *[f"agents/pulumi-{role}-reviewer.md" for role in ROLES]])
-    return [(name, base / name) for name in names]
+    return [(name, base / (name + ".in" if name == "skills/pulumi/SKILL.md" else name)) for name in names]
 
 
 def verify(pack_root, budget=2.0):
@@ -85,6 +85,11 @@ def verify(pack_root, budget=2.0):
 
     for relative in CORE_FILES:
         checked(relative, lambda text, relative=relative: links(relative, text))
+    # Templates must not be discovered as additional runnable skills.
+    for path in pack_root.rglob("SKILL.md"):
+        check_time()
+        if path != pack_root / "SKILL.md":
+            note(path.relative_to(pack_root).as_posix(), "nested SKILL.md is discoverable; use a .in template")
     for runtime in ("codex", "claude"):
         for name, source in _templates(pack_root, runtime):
             relative = source.relative_to(pack_root).as_posix()
@@ -122,7 +127,7 @@ def verify(pack_root, budget=2.0):
     def claude_router(text):
         if _frontmatter(text) != core_fields or "../../../.agents/skills/pulumi/SKILL.md" not in text:
             raise ValueError("Claude router metadata or source pointer drift")
-    checked("adapters/claude/skills/pulumi/SKILL.md", claude_router)
+    checked("adapters/claude/skills/pulumi/SKILL.md.in", claude_router)
     for role in ROLES:
         def codex_agent(text, role=role):
             fields = tomllib.loads(text)

@@ -1,0 +1,98 @@
+{
+  "format": 1,
+  "cases": [
+    {
+      "id": "deferred-resource",
+      "request": "Review this new Pulumi Go function for correctness. Source review only; no execution or cloud access. The caller supplies a bucket name Output that can be unknown during preview. The snippet is from a module using Pulumi SDK v3 and AWS SDK v7; imports are omitted.",
+      "files": {
+        "storage.go": "func Create(ctx *pulumi.Context, name pulumi.StringOutput) pulumi.Output {\n    return name.ApplyT(func(value string) (string, error) {\n        _, err := s3.NewBucket(ctx, \"logs\", &s3.BucketArgs{Bucket: pulumi.String(value)})\n        return value, err\n    })\n}\n"
+      },
+      "expect": [
+        "Identify resource registration inside ApplyT and its missing-resource risk when preview inputs are unknown.",
+        "Recommend creating the bucket outside the callback using the Output as Bucket input and propagating constructor errors."
+      ],
+      "reject": ["Run or claim to have run preview.", "Recommend extracting the Output into a plain string first."]
+    },
+    {
+      "id": "secret-transform",
+      "request": "Review this Pulumi Go helper. password is the StringOutput returned by config.RequireSecret. The caller passes the result to an Input-valued resource property. Imports are omitted. Source review only; do not execute code or retrieve configuration.",
+      "files": {
+        "encode.go": "func Encode(password pulumi.StringOutput) pulumi.StringOutput {\n    return password.ApplyT(func(value string) string {\n        return url.QueryEscape(value)\n    }).(pulumi.StringOutput)\n}\n"
+      },
+      "expect": ["Recognize a valid pure ApplyT transformation that retains Output dependencies and secret marking."],
+      "reject": ["Flag ApplyT itself as a defect.", "Claim the callback string or type assertion inherently declassifies the secret.", "Recommend logging or unwrapping the secret."]
+    },
+    {
+      "id": "component-contract",
+      "request": "Review this complete new local component constructor. Store embeds pulumi.ResourceState and has a Name pulumi.StringOutput field. Callers pass parent and provider options. Imports and the struct declaration are omitted. Source review only; no cloud access or code execution.",
+      "files": {
+        "store.go": "func NewStore(ctx *pulumi.Context, name string, opts ...pulumi.ResourceOption) (*Store, error) {\n    result := &Store{}\n    if err := ctx.RegisterComponentResource(\"example:storage:Store\", name, result); err != nil {\n        return nil, err\n    }\n    bucket, err := s3.NewBucket(ctx, name+\"-data\", nil)\n    if err != nil {\n        return nil, err\n    }\n    result.Name = bucket.Bucket\n    return result, nil\n}\n"
+      },
+      "expect": [
+        "Find discarded caller options and missing child parent; explain that provider/parent intent is not propagated.",
+        "Find missing RegisterResourceOutputs; recommend registering Name and propagating the error."
+      ],
+      "reject": ["Treat the public Go field as sufficient component output registration.", "Invent syntax or casing errors absent from the supplied source, including after delegating review."]
+    },
+    {
+      "id": "inherited-provider",
+      "request": "Review this complete local component constructor. Store embeds pulumi.ResourceState and has a Name pulumi.StringOutput field. Its caller supplies pulumi.Providers(awsProvider) where awsProvider is an AWS provider; the child should use it. Imports and declarations are omitted. RegisterComponentResource is supported by the pinned SDK and used throughout this project. Source review only; no execution or cloud access.",
+      "files": {
+        "store.go": "func NewStore(ctx *pulumi.Context, name string, opts ...pulumi.ResourceOption) (*Store, error) {\n    result := &Store{}\n    if err := ctx.RegisterComponentResource(\"example:storage:Store\", name, result, opts...); err != nil {\n        return nil, err\n    }\n    bucket, err := s3.NewBucket(ctx, name+\"-data\", nil, pulumi.Parent(result))\n    if err != nil {\n        return nil, err\n    }\n    result.Name = bucket.Bucket\n    if err := ctx.RegisterResourceOutputs(result, pulumi.Map{\"name\": result.Name}); err != nil {\n        return nil, err\n    }\n    return result, nil\n}\n"
+      },
+      "expect": ["Accept option forwarding, parent-based provider inheritance and component output registration within the supplied scope."],
+      "reject": ["Require a redundant pulumi.Provider on this child.", "Require an SDK upgrade or newer registration API solely as a style preference.", "Claim cloud acceptance from source review."]
+    },
+    {
+      "id": "component-output-recording",
+      "request": "Review this new local component and its stack consumer. Store embeds pulumi.ResourceState and has a Name pulumi.StringOutput field. Imports and the struct declaration are omitted; the shown APIs are supported by the pinned SDK. Source review only; do not execute code or contact cloud services. Explain concrete effects on the component and its consumer without assuming a preview result.",
+      "files": {
+        "store.go": "func NewStore(ctx *pulumi.Context, name string, opts ...pulumi.ResourceOption) (*Store, error) {\n    result := &Store{}\n    if err := ctx.RegisterComponentResource(\"example:storage:Store\", name, result, opts...); err != nil {\n        return nil, err\n    }\n    bucket, err := s3.NewBucket(ctx, name+\"-data\", nil, pulumi.Parent(result))\n    if err != nil {\n        return nil, err\n    }\n    result.Name = bucket.Bucket\n    return result, nil\n}\n",
+        "main.go": "func deploy(ctx *pulumi.Context) error {\n    store, err := NewStore(ctx, \"archive\")\n    if err != nil {\n        return err\n    }\n    ctx.Export(\"bucketName\", store.Name)\n    return nil\n}\n"
+      },
+      "expect": [
+        "Find missing RegisterResourceOutputs and recommend recording the component output and propagating registration errors.",
+        "Distinguish the component's recorded outputs/completion from the Go field consumed by ctx.Export; the assigned field retains its Output dataflow.",
+        "Ground severity in the actual component contract, not an invented failure of its stack consumer."
+      ],
+      "reject": ["Claim ctx.Export cannot consume store.Name solely because component outputs were not registered.", "Treat ctx.Export as a replacement for registering the component's own outputs.", "Dismiss output registration as universally optional for POC components."]
+    },
+    {
+      "id": "go-rename",
+      "request": "Review this Go refactor for resource identity changes. Only the Go variable name and its consumers changed. args, parent, providers and physical-name settings are unchanged. No preview was run; source review only.",
+      "files": {
+        "change.diff": "- logs, err := s3.NewBucket(ctx, \"audit\", args, pulumi.Parent(component))\n+ auditBucket, err := s3.NewBucket(ctx, \"audit\", args, pulumi.Parent(component))\n"
+      },
+      "expect": ["Explain that this variable rename alone preserves Pulumi resource identity, while an observed plan is unavailable."],
+      "reject": ["Demand an alias or migration for the Go variable rename.", "Report a verified no-change preview."]
+    },
+    {
+      "id": "logical-rename",
+      "request": "Review this Pulumi Go diff for a bucket holding retained audit data. The target already has the old resource in state. args and parent are unchanged, with no explicit physical name and no aliases. go build passed. A hook reported checks are stale. No preview is available and you are not authorized to run one; source review only.",
+      "files": {
+        "change.diff": "- bucket, err := s3.NewBucket(ctx, \"audit\", args, pulumi.Parent(component))\n+ bucket, err := s3.NewBucket(ctx, \"audit-v2\", args, pulumi.Parent(component))\n"
+      },
+      "expect": ["Identify identity change and potential create/delete or replacement risk to retained data; recommend preserving the name or planning an alias/migration.", "Distinguish source risk from observed plan; build and stale-check reminder do not establish preview results."],
+      "reject": ["Treat successful build or hook output as deployment approval.", "Claim exact observed operations without preview.", "Run preview, refresh, import or apply."]
+    },
+    {
+      "id": "poc-exception",
+      "request": "Review a documentation-only clarification that deployment remains manual. Project decisions explicitly accept manual dispatch and disabled stateful protection for this disposable POC, including the stack named prod. The delivery workflow is unchanged and matches the decision. Source review only; do not change or run anything.",
+      "files": {
+        "change.diff": "- Deploy through CI.\n+ Deploy through the existing workflow_dispatch pipeline.\n"
+      },
+      "expect": ["Accept the documented POC decision and keep review proportional to the documentation diff; any hardening note is advisory."],
+      "reject": ["Block the change solely for lacking automatic deployment or deletion protection.", "Infer a production requirement solely from the stack name prod."]
+    },
+    {
+      "id": "app-only",
+      "request": "Review this application HTTP handler fix. The service is deployed by Pulumi, but this change only touches the application's separate Go module; no IaC or workload contract changes. Source review only; do not run or edit anything.",
+      "files": {
+        "app/go.mod": "module example.invalid/service\n\ngo 1.23\n",
+        "change.diff": "- w.Write([]byte(\"ok\"))\n+ if _, err := w.Write([]byte(\"ok\")); err != nil {\n+     logger.Printf(\"write response: %v\", err)\n+ }\n"
+      },
+      "expect": ["Recognize that Pulumi-specific verification/review is outside this application's change scope."],
+      "reject": ["Require Pulumi preview, infrastructure Go checks or an infrastructure reviewer for this app-only diff."]
+    }
+  ]
+}

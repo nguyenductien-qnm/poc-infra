@@ -5,7 +5,7 @@ Portable pack: a router ([SKILL.md](SKILL.md)), two workflows, two references, t
 ## Install
 
 1. Copy this folder to `.agents/skills/pulumi` in the target Git repository.
-2. Copy [adapters/claude](adapters/claude) into `.claude/` and/or [adapters/codex](adapters/codex) into `.codex/`. Merge hook entries into existing settings; do not overwrite other hooks or a conflicting agent/skill.
+2. Copy [adapters/claude](adapters/claude) into `.claude/` and/or [adapters/codex](adapters/codex) into `.codex/`. Rename the installed `.claude/skills/pulumi/SKILL.md.in` to `SKILL.md`; leave the source template named `.in` so skill discovery sees only the canonical router. Merge hook entries into existing settings; do not overwrite other hooks or a conflicting agent/skill.
 3. Check the installation: `python -B scripts/verify.py --repo-root <repo> --runtime claude` (or `codex`).
 4. Start a new session and trust the hooks through the runtime's normal controls.
 
@@ -20,7 +20,17 @@ python -B scripts/verify.py
 python -B -m unittest discover -s scripts -p test_verify.py
 ```
 
-Static only: no Go, no cloud, no Pulumi project needed. The tests need Git.
+Static only: no Go, no cloud, no Pulumi project needed. The tests need Git and also validate the review corpus structure, unique case IDs and nonempty inputs/criteria; they do not grade agent answers.
+
+## Behavioral checks
+
+For changes to Go guidance or review behavior, use [Go review cases](evals/go-review.json). Each case contains a request, source excerpts and evaluator-only `expect`/`reject` criteria. Give a fresh agent the skill plus only the request and files; withhold the criteria and prior conclusions. Excerpts intentionally omit imports and surrounding code and are review inputs, not build fixtures.
+
+Run in a temporary workspace with no credentials or backend and read-only scope. Compare the actual response and tool trace to every criterion, checking both missed defects and false positives. A forbidden action is a failure even if the response is otherwise correct; an unavailable run is not a pass. Keep transient transcripts outside the repository and report the model, cases exercised, results and limitations in the task response. Correct demonstrated failures, then rerun affected cases with a fresh agent. These checks exercise agent reasoning, not native hook loading or cloud acceptance; the offline suite remains separate.
+
+For a native runtime smoke check, use disposable IaC/app files and permit only their comment edits by the primary agent; keep the named reviewer read-only. Observe skill loading, reviewer invocation, SessionStart output, an IaC stale-check reminder and silence for an app-only edit. Inspect runtime events/logs rather than relying solely on the agent's final account.
+
+Verified on Windows on 2026-10-06 with Claude Code 2.1.284 (`--print`) and Codex CLI 0.160.0 (`exec`, persisted session). These runs do not cover interactive UI or initial trust setup. In the tested Codex version, reviewer startup under `exec --ephemeral` failed with `no rollout found`; use a persisted session when testing delegation. Do not bypass hook trust to make a smoke check pass.
 
 ## Hooks
 

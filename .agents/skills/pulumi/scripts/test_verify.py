@@ -64,6 +64,8 @@ class PortablePackTests(unittest.TestCase):
             if source.is_dir():
                 continue
             target = self.repo / f".{runtime}" / source.relative_to(adapter)
+            if target.name == "SKILL.md.in":
+                target = target.with_suffix("")
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
 
@@ -105,6 +107,45 @@ class PortablePackTests(unittest.TestCase):
             with self.subTest(runtime=runtime):
                 self.install(runtime)
                 self.assertEqual([], self.module.verify_installation(self.pack, self.repo, runtime))
+
+    def test_adapter_templates_do_not_add_discoverable_skills(self):
+        self.assertEqual([self.pack / "SKILL.md"], list(self.pack.rglob("SKILL.md")))
+        nested = self.pack / "adapters" / "claude" / "skills" / "pulumi" / "SKILL.md"
+        shutil.copy2(self.pack / "SKILL.md", nested)
+        self.assert_finding(self.module.verify(self.pack), "nested SKILL.md")
+
+    def test_claude_installation_requires_discoverable_filename(self):
+        self.install("claude")
+        installed = self.repo / ".claude" / "skills" / "pulumi" / "SKILL.md"
+        self.assertTrue(installed.is_file())
+        installed.rename(installed.with_suffix(".md.in"))
+        self.assert_finding(self.module.verify_installation(self.pack, self.repo, "claude"), "missing")
+
+    def test_behavioral_cases_have_usable_inputs_and_criteria(self):
+        corpus = json.loads((self.pack / "evals" / "go-review.json").read_text(encoding="utf-8"))
+        self.assertEqual(1, corpus["format"])
+        self.assertIsInstance(corpus["cases"], list)
+        self.assertTrue(corpus["cases"])
+        seen = set()
+        for case in corpus["cases"]:
+            for key in ("id", "request"):
+                self.assertIsInstance(case[key], str)
+                self.assertTrue(case[key].strip(), key)
+            self.assertNotIn(case["id"], seen, "duplicate case id")
+            seen.add(case["id"])
+            self.assertIsInstance(case["files"], dict)
+            self.assertTrue(case["files"], case["id"])
+            for path, source in case["files"].items():
+                self.assertIsInstance(path, str)
+                self.assertTrue(path.strip(), case["id"])
+                self.assertIsInstance(source, str)
+                self.assertTrue(source.strip(), path)
+            for key in ("expect", "reject"):
+                self.assertIsInstance(case[key], list)
+                self.assertTrue(case[key], (case["id"], key))
+                for criterion in case[key]:
+                    self.assertIsInstance(criterion, str)
+                    self.assertTrue(criterion.strip(), (case["id"], key))
 
     def test_selected_runtime_tolerates_unrelated_configuration_but_rejects_owned_drift(self):
         self.install("codex")

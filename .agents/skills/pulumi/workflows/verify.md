@@ -10,8 +10,8 @@ Scope the diff to infrastructure Go modules and Pulumi/CI configuration. The pri
 
 ## Review
 
-Use the router's reviewer only for consequential changes, both only for independent risks. Pass the scope, diff and check results. Otherwise self-review and say so. Validate findings against source before editing.
+Use the router's reviewer only for consequential changes, both only for independent risks. Pass the scope, actual source paths and diff/base, and check results so the reviewer can read the original files. For snippet-only reviews, pass the supplied code verbatim rather than reconstructing it. Otherwise self-review and say so. Validate findings against the original source before reporting them or editing.
 
 ## Report
 
-`pass | changes-requested | blocked`, checks run with results, findings (file:line, failure scenario, fix) and unknowns. A pass covers only the checked scope; a hook reminder is not a check.
+`pass | changes-requested | blocked`, checks run with results, findings (file:line, failure scenario, fix) and unknowns. Distinguish source-predicted replacements/deletions from an observed preview plan; build or mock success cannot prove a no-change plan. A pass covers only the checked scope; a hook reminder is not a check.
