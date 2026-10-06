@@ -174,3 +174,4 @@ aws rds describe-db-instances
 
 - RDS có `skipFinalSnapshot = !protectStateful`: `protectStateful=false` thì destroy không giữ snapshot.
 - Destroy workload không đụng bootstrap. Bucket state, KMS key, ECR có `protect` và giữ lại khi destroy bootstrap; muốn xoá hẳn phải gỡ `protect` và xoá tay có chủ đích.
+- Sau khi destroy xong, chạy lại hai lệnh `describe` ở trên: kết quả phải rỗng thì mới coi là đã dọn sạch.
