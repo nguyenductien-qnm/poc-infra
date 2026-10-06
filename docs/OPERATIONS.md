@@ -17,7 +17,7 @@ Nhánh map sang stack: `dev` → `dev`, `staging` → `staging`, `main` → `pro
 | Workflow          | Khi nào                                                      | Làm gì                                                                                                                                                                                                                                               |
 | ----------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `pr-check.yml`    | PR vào `dev` / `staging` / `main`                            | `go mod tidy -diff`, build app, `go vet` + `go test` + `go build` infra, rồi `pulumi preview --diff` bằng role read-only. Giữ `imageTag` đang chạy để diff chỉ phản ánh hạ tầng. Kết quả cập nhật vào một comment trên PR; preview lỗi thì job fail. |
-| `deploy.yml`      | Push vào `dev` / `staging` / `main` (bỏ qua `*.md`, `docs/`) | Job `preview` (read-only, quyết định image tag, diff ra Job Summary), rồi job `deploy` trong GitHub Environment cùng tên: build và push image tag Git SHA 7 ký tự (chỉ khi `app/` đổi), `pulumi up`.                                                  |
+| `deploy.yml`      | Push vào `dev` / `staging` / `main` (bỏ qua `*.md`, `docs/`) | Job `preview` (read-only, quyết định image tag, diff ra Job Summary), rồi job `deploy` trong GitHub Environment cùng tên: build và push image tag Git SHA 7 ký tự (chỉ khi `app/` đổi), `pulumi up`.                                                 |
 | `bootstrap.yml`   | Chạy tay, nhánh `main`                                       | `preview` hoặc `up` cho project bootstrap, qua environment `bootstrap`.                                                                                                                                                                              |
 | `pulumi-pack.yml` | PR / push `main` đụng skill pack                             | Kiểm tra tĩnh skill pack trên Ubuntu và Windows.                                                                                                                                                                                                     |
 
@@ -30,11 +30,11 @@ Nhánh map sang stack: `dev` → `dev`, `staging` → `staging`, `main` → `pro
 
 **Khi nào build image.** Job `preview` so `app/` (gồm Dockerfile, `go.mod`) giữa commit này và commit của `imageTag` đang chạy trên stack:
 
-| Tình huống | Image tag | Build | Task Definition |
-| ---------- | --------- | ----- | --------------- |
-| `app/` đổi, hoặc stack chưa có `imageTag` | SHA commit này | Có | Đổi, ECS rolling-update |
-| `app/` không đổi (chỉ sửa `infra/`, workflow...) | Giữ tag đang chạy | Không | Không đổi, task không restart |
-| Tag đang chạy không còn trong lịch sử git hoặc không còn trong ECR | SHA commit này | Có | Đổi |
+| Tình huống                                                         | Image tag         | Build | Task Definition               |
+| ------------------------------------------------------------------ | ----------------- | ----- | ----------------------------- |
+| `app/` đổi, hoặc stack chưa có `imageTag`                          | SHA commit này    | Có    | Đổi, ECS rolling-update       |
+| `app/` không đổi (chỉ sửa `infra/`, workflow...)                   | Giữ tag đang chạy | Không | Không đổi, task không restart |
+| Tag đang chạy không còn trong lịch sử git hoặc không còn trong ECR | SHA commit này    | Có    | Đổi                           |
 
 Job Summary của `preview` ghi rõ tag nào và có build hay không. Job `deploy` dùng đúng tag đó (`needs.preview.outputs.image_tag`), không tự tính lại. So sánh theo nội dung `app/`, không theo quan hệ tổ tiên, nên chạy đúng khi mỗi stack deploy từ nhánh khác nhau.
 
@@ -42,14 +42,15 @@ Muốn ép build lại dù `app/` không đổi (ví dụ đổi base image phí
 
 ### Approval chưa bật
 
-Cổng approve nằm ở cấu hình GitHub (Settings > Environments), không nằm trong code. Workflow đã khai báo `environment:` cho job `deploy` và `bootstrap`, nên chỉ cần bật *Required reviewers* là có cổng, không phải sửa workflow.
+Cổng approve nằm ở cấu hình GitHub (Settings > Environments), không nằm trong code. Workflow đã khai báo `environment:` cho job `deploy` và `bootstrap`, nên chỉ cần bật _Required reviewers_ là có cổng, không phải sửa workflow.
 
 Hiện trạng (kiểm tra bằng `gh api repos/<owner>/<repo>/environments`): `bootstrap` đã bật, `dev`, `staging`, `prod` chưa bật reviewer, `prod` cũng chưa giới hạn deployment branch. Hệ quả:
+
 - `staging`, `prod`: `pulumi up` chạy ngay khi `preview` xong, không ai bắt buộc phải đọc diff.
-- `bootstrap`: **đã bật** *Required reviewers* và giới hạn deployment branch. Đây là environment quan trọng nhất vì role bootstrap là Admin và chỉ environment này bảo vệ nó.
+- `bootstrap`: **đã bật** _Required reviewers_ và giới hạn deployment branch. Đây là environment quan trọng nhất vì role bootstrap là Admin và chỉ environment này bảo vệ nó.
 - `dev`: không cần reviewer, đúng thiết kế.
 
-Bật khi sẵn sàng (làm tay trên GitHub): `staging`, `prod` tick *Required reviewers*; `prod` giới hạn *Deployment branches* là `main`. Lưu ý: với repo private, *Required reviewers* cần gói GitHub Pro, Team hoặc Enterprise.
+Bật khi sẵn sàng (làm tay trên GitHub): `staging`, `prod` tick _Required reviewers_; `prod` giới hạn _Deployment branches_ là `main`. Lưu ý: với repo private, _Required reviewers_ cần gói GitHub Pro, Team hoặc Enterprise.
 
 ### Image đến ECS thế nào
 
@@ -109,7 +110,7 @@ Actions > **Bootstrap Infrastructure** > Run workflow (nhánh `main`):
 1. Chọn `preview`, duyệt, đọc diff ở Job Summary.
 2. Chạy lại với `up`, duyệt lần nữa.
 
-(Bước "duyệt" do *Required reviewers* của environment `bootstrap`, đã bật.)
+(Bước "duyệt" do _Required reviewers_ của environment `bootstrap`, đã bật.)
 
 Đổi bootstrap: sửa code, mở PR, merge vào `main`, rồi chạy hai bước trên.
 
@@ -128,21 +129,22 @@ Ghi lại lý do và đưa thay đổi hợp lệ về code qua PR.
 
 ## Sự cố
 
-| Tình huống                                                       | Xử lý                                                                                                                                               |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pulumi up` lỗi giữa chừng, còn pending operations hoặc lock     | Dừng deploy. Xác nhận không còn update nào đang chạy, đối chiếu resource thật với state, rồi mới `pulumi refresh` / `pulumi cancel`. Không retry mù |
-| Sai account (`aws credentials belong to a different account...`) | Credential không khớp `expectedAccount` của stack. Dừng trước khi tạo gì. Đổi credential, không đổi config để lách                                  |
+| Tình huống                                                       | Xử lý                                                                                                                                                                      |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pulumi up` lỗi giữa chừng, còn pending operations hoặc lock     | Dừng deploy. Xác nhận không còn update nào đang chạy, đối chiếu resource thật với state, rồi mới `pulumi refresh` / `pulumi cancel`. Không retry mù                        |
+| Sai account (`aws credentials belong to a different account...`) | Credential không khớp `expectedAccount` của stack. Dừng trước khi tạo gì. Đổi credential, không đổi config để lách                                                         |
 | App mới lỗi (task không qua health check `/health`)              | Task cũ vẫn phục vụ. Xem log ở CloudWatch Logs của service. Sửa code rồi push lại, hoặc đặt `imageTag` về SHA cũ và chạy `up`. Không tự rollback (chưa có circuit breaker) |
-| Thiếu `imageTag`                                                 | Chạy local thì set theo lệnh ở mục preview local; CI tự set                                                                                         |
-| Drift (ai đó sửa tay trên console)                               | `pulumi refresh --preview-only` để xem, sửa code hoặc `up` để kéo về đúng                                                                           |
-| Khôi phục state                                                  | S3 có versioning. Sao lưu state hiện tại trước, rồi đối chiếu resource. State cũ không phải rollback hạ tầng                                        |
-| CI/OIDC lỗi                                                      | Kiểm tra `sub`, environment, secret ARN. Với bootstrap xem "Bị khoá thì làm gì"                                                                     |
+| Thiếu `imageTag`                                                 | Chạy local thì set theo lệnh ở mục preview local; CI tự set                                                                                                                |
+| Drift (ai đó sửa tay trên console)                               | `pulumi refresh --preview-only` để xem, sửa code hoặc `up` để kéo về đúng                                                                                                  |
+| Khôi phục state                                                  | S3 có versioning. Sao lưu state hiện tại trước, rồi đối chiếu resource. State cũ không phải rollback hạ tầng                                                               |
+| CI/OIDC lỗi                                                      | Kiểm tra `sub`, environment, secret ARN. Với bootstrap xem "Bị khoá thì làm gì"                                                                                            |
 
 ## Skill Pulumi cho trợ lý AI
 
 Repo có một skill dùng cho trợ lý AI (Claude Code, Codex) khi làm việc với hạ tầng Pulumi Go. Skill chỉ hỗ trợ người viết code và review; **không nằm trong luồng CI/CD** và không đụng tới AWS. Nguồn ở [`.agents/skills/pulumi`](../.agents/skills/pulumi/README.md) (viết bằng tiếng Anh), `.claude/` và `.codex/` chỉ là adapter.
 
 **Dùng thế nào**
+
 - Claude: `/pulumi adopt ...` hoặc `/pulumi verify ...`. Codex: `$pulumi adopt ...` hoặc `$pulumi verify ...`.
 - `adopt`: thiết kế hoặc triển khai thay đổi hạ tầng (resource nào tạo mới, dùng lại, hay import), rồi tự chạy `verify`.
 - `verify`: kiểm tra thay đổi trong `infra/` (`gofmt`, `go vet`, `go build`, `go test`, và `pulumi preview` chỉ khi bạn cho phép).
@@ -165,8 +167,7 @@ Cài skill sang repo khác, tin cậy hook và các giới hạn: xem [README c�
 
 ```bash
 cd infra/workload
-pulumi destroy -s staging && pulumi destroy -s dev
-# prod: nếu đã bật protectStateful/deletionProtection thì tắt, pulumi up, rồi mới destroy
+pulumi destroy -s staging && pulumi destroy -s dev && pulumi destroy -s prod
 aws elbv2 describe-load-balancers   # kiểm tra tài nguyên sót
 aws rds describe-db-instances
 ```
