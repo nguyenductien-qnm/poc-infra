@@ -87,3 +87,5 @@ Fargate ở public subnet, ALB chỉ HTTP, RDS single-AZ, role deploy là Admin,
 The standalone [Pulumi Go skill](.agents/skills/pulumi/SKILL.md) covers infrastructure composition, state, identities, workload configuration and GitOps delivery. Its complete distributable folder includes instructions, read-only reviewer contracts, scripts/tests and optional Codex/Claude adapter templates. It does not depend on this repository's infrastructure, documents or history.
 
 See the [pack setup guide](.agents/skills/pulumi/README.md) for standalone checks, project integration, hook trust and limitations. Application implementation, build/tests and container builds remain outside the skill.
+
+Artifacts lịch sử của các native run, frozen grades và quyết định cải thiện nằm tại [Pulumi skill harness — 07/10/2026](docs/history/pulumi-skill-harness/2026-10-07/README.md).

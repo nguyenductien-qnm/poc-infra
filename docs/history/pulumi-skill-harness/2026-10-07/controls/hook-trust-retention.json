@@ -1,0 +1,37 @@
+{
+  "normal_TUI_trust": true,
+  "terminal_TUI_exit_codes": [
+    0,
+    0
+  ],
+  "sessions": [
+    "01a11240-28df-7041-9970-4b629eb63dc2",
+    "01a11243-7d8b-7f53-a196-52097f8b1aac"
+  ],
+  "sources": {
+    "unchanged": {
+      "repo": "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\retention-codex-unchanged",
+      "definition_sha256": "6b5b30ec94413ec8ba644cb171c742cf0463d4391970fab38af820f66394fa5b",
+      "runtime_trust_state": {
+        "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\retention-codex-unchanged\\.codex\\hooks.json:post_tool_use:0:0": {
+          "trusted_hash": "sha256:b21c2a6b44e1a7c4309b16e8fd6076a87a335b0b727e302d2d7bb29cab457f34"
+        },
+        "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\retention-codex-unchanged\\.codex\\hooks.json:session_start:0:0": {
+          "trusted_hash": "sha256:d72d20d4116364bdeb4b8bb97cef25ba47d95dae228cc24d9f8cfa97aa525ae6"
+        }
+      }
+    },
+    "candidate": {
+      "repo": "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\retention-codex-candidate",
+      "definition_sha256": "6b5b30ec94413ec8ba644cb171c742cf0463d4391970fab38af820f66394fa5b",
+      "runtime_trust_state": {
+        "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\retention-codex-candidate\\.codex\\hooks.json:post_tool_use:0:0": {
+          "trusted_hash": "sha256:b21c2a6b44e1a7c4309b16e8fd6076a87a335b0b727e302d2d7bb29cab457f34"
+        },
+        "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\retention-codex-candidate\\.codex\\hooks.json:session_start:0:0": {
+          "trusted_hash": "sha256:d72d20d4116364bdeb4b8bb97cef25ba47d95dae228cc24d9f8cfa97aa525ae6"
+        }
+      }
+    }
+  }
+}

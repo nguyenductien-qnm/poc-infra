@@ -1,0 +1,14 @@
+{
+  "grader": "grade_d6_app_claude",
+  "offline_code_verdict": "pass for narrow app-comment control",
+  "overall_mandatory_gate": "pass",
+  "score": 100,
+  "dimensions": {"scope": 4, "investigation": 4, "code_identity": 4, "state_secret_delivery": 4, "verify": 4, "handoff": 4},
+  "weights": {"scope": 15, "investigation": 15, "code_identity": 25, "state_secret_delivery": 20, "verify": 15, "handoff": 10},
+  "findings": [],
+  "positive": "Actual handoff/worker/AGENTS reads before exact Edit. All59snapshot files compared: only requested app comment changed. Native final status/full diff/node syntax check truthful; no builds/Go/review/cloud or prohibited actions. Noticed stale handoff app-comment note and preserved docs as required.",
+  "evidence": ["events.jsonl:26-32", "events.jsonl:33-34", "events.jsonl:36-38", "events.jsonl:2", "source-freeze.json", "independent-checks.json"],
+  "runtime": "Fresh resume:null; primary claude-opus-5.5/high/bypassPermissions; zero spawned subagents. Current PostToolUse:Edit exit0 empty output; static SessionStart expected and not IaC verification.",
+  "insights": "Fresh receiver respects handoff and scope, uses proportionate verification; installed hook quiet for this app edit.",
+  "limits": "Narrow-task score has limited comparability; no general hook-classification, broad infra correctness, cloud isolation or causal skill benefit. Billing canonical label does not replace primary response metadata."
+}

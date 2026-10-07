@@ -1,0 +1,9 @@
+{
+  "run": "d3b-claude-recovery-01",
+  "repo": "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\d1-repaired-claude",
+  "before": "d749f1cfc92cb85f5cac3a814f195d9634d4b0e4",
+  "checkpoint": "aeef14ae3fa82f15aa5d8b0a4bcbe2e4ebe45441",
+  "frozen_files_compared": 43,
+  "scope": "parent Git checkpoint only; no source repair or grade revision",
+  "recorded": 1791315405.6076581
+}

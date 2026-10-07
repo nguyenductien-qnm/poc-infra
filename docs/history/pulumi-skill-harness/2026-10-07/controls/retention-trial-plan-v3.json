@@ -1,0 +1,34 @@
+{
+  "supersedes": "retention-trial-plan-v2.json; originals preserved",
+  "scope": "offline exploratory within-harness candidate vs unchanged; no clean no-skill or model ranking claim",
+  "models": {
+    "claude": "full request claude-opus-5.5; high; stop on unexpected primary response model",
+    "codex": "gpt-6.1-sol high"
+  },
+  "permissions": {
+    "claude": "bypassPermissions both phases",
+    "codex": "actual danger-full-access and approval never both phases, common config override"
+  },
+  "same_business_inputs": "retention-{runtime}-prompt.txt then identical retention-followup.txt",
+  "accepted_matched_arms": {
+    "claude-unchanged": "retention-claude-unchanged-repaired-01/-02",
+    "claude-candidate": "retention-claude-candidate-repaired-01/-02",
+    "codex-candidate": "retention-codex-candidate-repaired-01/-02",
+    "codex-unchanged": "retention-codex-unchanged-01/-02"
+  },
+  "excluded_comparison_sequences": [
+    "retention-codex-candidate-01/-02 permission change",
+    "retention-claude-unchanged-01/-02 model mismatch",
+    "retention-claude-candidate-01 partial prior routing condition"
+  ],
+  "recovery_stashes": {
+    "claude-unchanged": "c6cc240abe2612e56f639102aadf2e6ff868216a",
+    "codex-candidate": "8fbcb97dd523a3f0242821f99b609aa521bc299b"
+  },
+  "matched_n_per_arm": 1,
+  "primary_measure": "latest final-file check results agree with native handoff after natural followup",
+  "promotion_rule": "both succeed -> defer; improvement -> independent retest; regression -> revise/drop",
+  "no_mid_experiment_guidance_changes": true,
+  "analyst": "review_daily_lab gpt-6-astra high",
+  "frozen": 1791310157.91146
+}

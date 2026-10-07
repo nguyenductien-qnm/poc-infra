@@ -1,0 +1,9 @@
+{
+  "time": 1791305549.7162879,
+  "user_instruction": "cứ allow hook,... nếu cần nhé, đừng để block hay cần user manual, tôi cho phép bạn toàn quyền",
+  "scope": "approve local harness hooks and required coding/check tools; apply after frozen active runs",
+  "active_runs_not_reconfigured": [
+    "d1-claude-01",
+    "d1-codex-01"
+  ]
+}

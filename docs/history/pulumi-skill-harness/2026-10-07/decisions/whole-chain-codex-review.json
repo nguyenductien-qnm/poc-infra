@@ -1,0 +1,56 @@
+{
+  "grader": "whole_chain_codex",
+  "verdict": "Bounded pass for routine offline Pulumi Go and handoff within tested contracts",
+  "positive": "D1-D2 accepted working tree40matchingfiles/no reset; D2-D6 own thread; contracts accumulate through public fixtures; relevant SDK/RPC/delivery/network investigation and actual checks/reviews; D6 evidence boundaries and fresh app scope appropriate",
+  "findings": [],
+  "attribution": "D1/D3b intermediate actor/test failures corrected before final; D5 subnet/D6 README repairs evaluator-only with originals/provenance retained; no recurring skill defect",
+  "recommendation": "Stop loop and retain skill; later materially different separately authorized task",
+  "model": "gpt-6-astra",
+  "effort": "high",
+  "phase": "fresh blind own-chain review; prior/opposite grades excluded",
+  "format": "Parent transcription of unchanged independent final; full final retained in chat",
+  "evidence": {
+    "d1-codex-02": {
+      "events.jsonl": "3ba86054919176d599c2b74806fd1f342754b4618b9436e39f6e7d2313c85955",
+      "grade-frozen.json": "a76dfecb45f92f97a846daa33f157d10074cea451c868b344f81cbfa11bdbd75",
+      "independent-checks.json": "b735b9e467cd2993ca974ab735a84b72b669fc1e230c4faa672abfd2e6641267"
+    },
+    "d2-codex-01": {
+      "events.jsonl": "73a9295b98711b779dc029b2fb5bec8e092e02e6266da09ae06f83c24900dfe9",
+      "grade-frozen.json": "b77411bd1dc68e820f57da3934b607fc8f3e0b6abb6a2d72b7a05d9ca5b1232f",
+      "independent-checks.json": "61339dc8455f7e6d2af867c66ff9cc5e3f1ea94b6e596a5c297795790641228e"
+    },
+    "d3a-codex-01": {
+      "events.jsonl": "d9e6f869d3dcc2e7abf0be67ff717f0443bffbad8cae9680df9a7b537706b94c",
+      "grade-frozen.json": "f5971c80909931b839b6e61231892402a952ea226afdbbd264f54adcbf9e2732",
+      "independent-checks.json": "c762bc2b996fa35f4526870b5f6026912836a22fca3bd528ce4a7f3d2a065352"
+    },
+    "d3b-codex-01": {
+      "events.jsonl": "e327407e8805ae6a83c32d9558152e6d1f7712624a847640efdbb30fceef7cfd",
+      "grade-frozen.json": "85a3a49a33bbe5c96d1be29f19668c77dbb6d8a382619dc07c71bf394bbdd5fa",
+      "independent-checks.json": "a118babc75ba7fd8bddc0f75abdf57749f6896a8b3e42602f915e665633f8992"
+    },
+    "d4-codex-01": {
+      "events.jsonl": "3ac5e8273232dc63901d3db96b9837fcda4e453172174058360c216591bed30a",
+      "grade-frozen.json": "be743fc63efc824e05ec93ba0d8e3afdef63b872cfe76736d07f83b45cf701f1",
+      "independent-checks.json": "74397ad715095bb9d4aae32820139b144eec197d0283e927c62f5ed48679f9be"
+    },
+    "d5-codex-01": {
+      "events.jsonl": "4ce43757545ee51fa2e832cda9693259e120cfedf74287ee43531751d82372e5",
+      "grade-frozen.json": "c230c787481b4ccc6a66e3a39b77f387198b640f8662c487275c53c0c2eab8ce",
+      "independent-checks.json": "e279d0ea9b980d1185fe798c578cf7a2e95d5695e0fa8f1ed1ae7293edf74696"
+    },
+    "d6-codex-01": {
+      "events.jsonl": "0aca1aa0e9c080a2ad7a8f863646cb77eabebc2c875cea8eee3bded8777ab282",
+      "grade-frozen.json": "c6305b1ad21e43bd5d760ca249a3a50fc157eae753f3ce125890a6632583b68b",
+      "independent-checks.json": "c0b47b863efe694c133e0506e96de4ba81e452c97d86ad0df392cb8db1f99109"
+    },
+    "d6-app-codex-01": {
+      "events.jsonl": "8cb4236b0186db58687d6674dcbaa24199c7325be8c3d6af503fd979ef5fe0b0",
+      "grade-frozen.json": "e17182f60db7d083055797cc3b2df4ba96c3c7709f323464a90e3331cb988d2f",
+      "independent-checks.json": "040bb7db85a0e36966ab09faf209ebd042e82c208e4a26717c6623bdfda8fa86"
+    }
+  },
+  "recorded": 1791320232.6546779,
+  "limits": "No live readiness, causal no-skill attribution, broad fresh-session competence or model ranking"
+}

@@ -1,0 +1,25 @@
+{
+  "supersedes": "retention-trial-plan.json; original preserved",
+  "change": "Repair Codex resume permissions; replace excluded candidate attempt from untouched prepared revision.",
+  "unchanged": "Models, high effort, versions, public tasks, acceptance, one run per matched arm, offline scope.",
+  "order": [
+    [
+      "claude-unchanged-followup",
+      "neutral-codex-initial-resume"
+    ],
+    [
+      "claude-candidate",
+      "codex-candidate-repaired"
+    ],
+    [
+      "codex-unchanged"
+    ]
+  ],
+  "excluded_from_comparison": [
+    "retention-codex-candidate-01",
+    "retention-codex-candidate-02"
+  ],
+  "promotion": "Both succeed -> defer; apparent improvement -> independent retest; regression -> revise/drop.",
+  "analyst": "review_daily_lab, gpt-6-astra high",
+  "frozen": 1791309292.6208718
+}

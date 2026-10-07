@@ -1,0 +1,72 @@
+{
+  "original": "d3b-claude-01",
+  "original_exit": 1,
+  "termination": "wall_ceiling1200seconds",
+  "checks": [
+    {
+      "command": [
+        "gofmt",
+        "-l",
+        "."
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "go",
+        "mod",
+        "tidy",
+        "-diff"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "go",
+        "vet",
+        "./..."
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "go",
+        "build",
+        "./..."
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "-count=1",
+        "./..."
+      ],
+      "exit_code": 1
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "-count=1",
+        "-v",
+        "./..."
+      ],
+      "exit_code": 1
+    }
+  ],
+  "original_hashes": {
+    "events.jsonl": "e22451ec2b7575664cff966c5b9ef9c035cbf7c73205facec9a9d58c964b95e1",
+    "manifest.json": "8c120380a5cc32053f7dcd3ce00331c565cc1ac4ae4b4dc265a89d419aac5c31",
+    "independent-checks.json": "39012107fe0bff9b3a11d0a9e14e1548675459074b83ba3837f4bd1f8c354a1e",
+    "diff.patch": "3dc8be895c45543209f076b3360ff319d1e0960359b506199c1439119f0596ef",
+    "native-metadata.json": "84567beeea7fca657ae8b3e9eff36efef8af5db566be9fbf20e515aa61fa7968"
+  },
+  "recovery": "d3b-claude-recovery-01",
+  "ceiling": 600,
+  "same_own_session": "ee9846c0-53ee-41ea-a167-d18eb01f2f75",
+  "prompt_sha256": "0eb6fbcb8d2658a6a79d85f4ed7fe6528de605413d8a2e7694877d5662b88b15",
+  "intervention": "Neutral continuation only; no parent source edits, evaluator insight or opposite-harness patch. Original failure remains independent verdict; subsequent behavior qualified by recovery.",
+  "recorded": 1791314747.7017286
+}

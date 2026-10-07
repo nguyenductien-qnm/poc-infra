@@ -1,0 +1,59 @@
+{
+  "analyst": "review_daily_lab",
+  "model": "gpt-6-astra",
+  "effort": "high",
+  "decision": "stop diagnostic; drop candidate from promotion; canonical unchanged; no confirmation",
+  "reason": "All four required dispositions correct in both unchanged arms satisfies predeclared unchanged_success. Extra unsupported handoff qualifiers/aggregate score are not a replacement primary metric.",
+  "grades": {
+    "semantic-claude-a-01": {
+      "score": 93.75,
+      "verdict": "changes-requested",
+      "four_claims": {
+        "late_zero": "correctly rejected; four application requests precede child validation",
+        "early_zero": "correctly preserved; root validates before all application requests",
+        "selected_all_parents": "correctly rejected; selected assertions2/5",
+        "complete_frozen_parents": "correctly preserved; all5 literal tuples compared"
+      },
+      "grade_sha256": "61ec5af2ae19d70825c22005e3ad0f56285433291123f21960bc0377fcd23bb8"
+    },
+    "semantic-claude-b-01": {
+      "score": 100,
+      "verdict": "pass",
+      "four_claims": {
+        "late_zero": "correctly rejected; four application requests precede child validation",
+        "early_zero": "correctly preserved; root validates before all application requests",
+        "selected_all_parents": "correctly rejected; selected assertions2/5",
+        "complete_frozen_parents": "correctly preserved; all5 literal tuples compared"
+      },
+      "grade_sha256": "158039729285b2e9f179e24f078c019a15d9eeb0478ddd5c4538232c5ceeea40"
+    },
+    "semantic-codex-a-01": {
+      "score": 100,
+      "verdict": "pass",
+      "four_claims": {
+        "late_zero": "correctly rejected; four application requests precede child validation",
+        "early_zero": "correctly preserved; root validates before all application requests",
+        "selected_all_parents": "correctly rejected; selected assertions2/5",
+        "complete_frozen_parents": "correctly preserved; all5 literal tuples compared"
+      },
+      "grade_sha256": "3ef1de5fe8e6b5d5206aa7d5e5ccedaff3e51a063e9235b546cbb17127402125"
+    },
+    "semantic-codex-b-01": {
+      "score": 100,
+      "verdict": "pass",
+      "four_claims": {
+        "late_zero": "correctly rejected; four application requests precede child validation",
+        "early_zero": "correctly preserved; root validates before all application requests",
+        "selected_all_parents": "correctly rejected; selected assertions2/5",
+        "complete_frozen_parents": "correctly preserved; all5 literal tuples compared"
+      },
+      "grade_sha256": "97e48b96ca5a46eb87b961bda6e1d1947f700758e20949d178690dbb45d42764"
+    }
+  },
+  "preserved_finding": "Claude unchanged added an unsupported valid-call-path coverage limitation; changes-requested93.75 remains unchanged",
+  "scoped_conclusion": "Unchanged guidance handled all four targeted distinctions correctly. One unchanged run added unsupported qualifications; candidate did not. Exploratory difference establishes no benefit or promotion entitlement.",
+  "next": "Continue D4-D6 unchanged skill; exact predecessor diff should reach reviewers under existing guidance; do not reopen diagnostic, tune cases or coach active coders",
+  "limits": "n=1 per arm; shared auth/config/full local permissions; no causal/equivalence/superiority/modelrank inference",
+  "plan_sha256": "234a00d8b841c41ff649632ff58aa212f2a2099cbd5775d8b0d02eef851eeb9c",
+  "recorded": 1791314393.5384734
+}

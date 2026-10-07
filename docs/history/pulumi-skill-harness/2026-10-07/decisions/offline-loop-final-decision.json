@@ -1,0 +1,131 @@
+{
+  "analyst": "final_loop_insight",
+  "model": "gpt-6-astra",
+  "effort": "high",
+  "decision": "stop current offline loop; retain canonical skill unchanged",
+  "format": "Parent transcription of unchanged independent central final; complete final retained in chat",
+  "basis": "Both blind whole-chain reviews confirm cumulative continuity and routine supervised offline coverage. No distinct missing skill behavior warrants a candidate/holdout; current task/verify/router already cover remaining actor misses.",
+  "coverage": [
+    "root config and example parsing",
+    "persisted config versus Go API",
+    "ownership/parents/providers/aliases",
+    "Outputs/unknown image/known secret",
+    "local target/revision/gate controls",
+    "typed UAT egress",
+    "synthetic drift/pending decisions/handoff",
+    "fresh app-only scope"
+  ],
+  "qualifications": [
+    "Original D3b Claude failure retained, bounded recovery qualified",
+    "Earlier frozen reporting/verification defects retained",
+    "Reviewer coverage partial in some traces",
+    "D5 conflicting subnet and D6 wrapped README fixes evaluator-only",
+    "Claude D6 handoff cwd/results/skips and omitted native checks remain nonblocking",
+    "Hook evidence only proves recorded scope"
+  ],
+  "closed_candidates": "Retention DROP and semantic STOP/DROP remain closed; no substituted metric, reopened candidate or score-based promotion",
+  "next_useful_evidence": "Materially different real task or separate authorized live track: backend/stack/identity/permissions/locking/encryption/recovery, actual alias/replacement preview and physical preservation, CI revision/approval/serialization/identity, connectivity/logging/image/capacity, live drift and approved reconciliation",
+  "live_gates_are_future": true,
+  "limits": "Supervised routine offline readiness only; not unattended completion reliability/live deployment readiness/clean no-skill causal attribution/model ranking. Detailed prompts, shared context/config and n=1 chains limit claims.",
+  "canonical_commit": "4db9185337dd9cc0cb8f206744c0d4ca5aa4a0b4",
+  "canonical_patch": false,
+  "new_round": false,
+  "cloud_resources_created": 0,
+  "cleanup": "No live resources provisioned; native processes terminal; evidence/local checkpoints intentionally preserved",
+  "whole_chain_reviews": {
+    "claude": "c7890a6b3f18457a62d6346aa6cae7be6645b93852b7a305562b33a6b6491243",
+    "codex": "b1f1342b7dd21ba59da15c3ef92335a30477bd2a383e8e014819576be4f2791b"
+  },
+  "grade_integrity": {
+    "claude": {
+      "d1-claude-02": {
+        "events.jsonl": "ab948d8f8e2bbca652ac0b44d226c216f47475c37ff9f31187472c76f17b5518",
+        "grade-frozen.json": "03de794f580e46207f8ec5b916f5eba19f9e2d499ecca94fe3e883bb327bdba6",
+        "independent-checks.json": "975b255be798b4a061203860a4144faf21fde07808aa2c1a52314501caab8de8"
+      },
+      "d2-claude-01": {
+        "events.jsonl": "9542c876e71051d3b8dfe2daab52a4fa689effdcdd5d3a9649edd1e02aa07ed5",
+        "grade-frozen.json": "57d20dc529a31f3b7dcd70fdf80506c18d8329032c53f3747f2dc759c06be7b8",
+        "independent-checks.json": "d1398beb93801fa77265f3f19c653da59687187dd7b8f87809525c6e49b28672"
+      },
+      "d3a-claude-01": {
+        "events.jsonl": "afe33639c60598f1a6d1c55b67416db1adb7ae5a53e1a03f57d71b6b811aa3da",
+        "grade-frozen.json": "1590c3bd547a9a7fbda55acc6078853a51ff8fc83686aa05741db709e5d2e784",
+        "independent-checks.json": "f5d8851dca6d01680646b33d1cd5bd235c09b945a76b224b0402823c4d0e99fa"
+      },
+      "d3b-claude-01": {
+        "events.jsonl": "e22451ec2b7575664cff966c5b9ef9c035cbf7c73205facec9a9d58c964b95e1",
+        "grade-frozen.json": "4bfbcf42d8abaddb096490b8a2c7ea9c1271ecde5aa332df354284d07dfcbd8c",
+        "independent-checks.json": "39012107fe0bff9b3a11d0a9e14e1548675459074b83ba3837f4bd1f8c354a1e"
+      },
+      "d3b-claude-recovery-01": {
+        "events.jsonl": "5cb4fb5ab2126ac1958511efd901954b338c740d1c7f2f29c97fcf2458de5f4a",
+        "grade-frozen.json": "103c2ff412325bbd45ff3333cd262ecf79b45bf5a2d4d624b0456fd52af693ce",
+        "independent-checks.json": "6159e7ce75b42bdde19ede06929a7020de0c60c2c51bfdf75b5aacd1cbbcccea"
+      },
+      "d4-claude-01": {
+        "events.jsonl": "7fe4e064a655093450935304760c9b8d5d0027d5f4d79c1b96847232b9ebdf42",
+        "grade-frozen.json": "c5e6ca84963ad4488cc6e51b84dd45d018c1bf444a90d6bd28e02af5e831cc94",
+        "independent-checks.json": "194b27183202e6e4852b5dca56793574c2ee206ae3e1e6d0aceb499515a9e27a"
+      },
+      "d5-claude-01": {
+        "events.jsonl": "ae5782a08a76ba5f14e56e09aeccded73ec026fede8b0f54cfb39ca055027179",
+        "grade-frozen.json": "f56e97115d7898d51cdf5334b1295f2da47778272c0b683b6e4ce6fcf9674f72",
+        "independent-checks.json": "d93ec4e259d2d250970769b021ed434d7b2afbeb0c4bef26ae1f127161087ebb"
+      },
+      "d6-claude-01": {
+        "events.jsonl": "10d271247e02805b4646ab41f8a75d9aa4d0689f0c00ad0e31a7df0248e4c608",
+        "grade-frozen.json": "c21aa9527fedc9dc9352f7983e83bc0a6b89175bc8e2ba883eb19ad8538f1a34",
+        "independent-checks.json": "28f6356c6a24639f865ae056f5e19584ce1c18b190350ba132484cf81788ae0c"
+      },
+      "d6-app-claude-01": {
+        "events.jsonl": "357fbfc5e8feac397725b53be57b80816d6a9ed86b773759187ab28f87699f1c",
+        "grade-frozen.json": "6021990b7e46e20aa32650b86f0ce09f32830a65096402bc04533dd07219398a",
+        "independent-checks.json": "fccb11a2416468edba238ec739e21eeeab1be99c951430453dd57ae380c7b87f"
+      }
+    },
+    "codex": {
+      "d1-codex-02": {
+        "events.jsonl": "3ba86054919176d599c2b74806fd1f342754b4618b9436e39f6e7d2313c85955",
+        "grade-frozen.json": "a76dfecb45f92f97a846daa33f157d10074cea451c868b344f81cbfa11bdbd75",
+        "independent-checks.json": "b735b9e467cd2993ca974ab735a84b72b669fc1e230c4faa672abfd2e6641267"
+      },
+      "d2-codex-01": {
+        "events.jsonl": "73a9295b98711b779dc029b2fb5bec8e092e02e6266da09ae06f83c24900dfe9",
+        "grade-frozen.json": "b77411bd1dc68e820f57da3934b607fc8f3e0b6abb6a2d72b7a05d9ca5b1232f",
+        "independent-checks.json": "61339dc8455f7e6d2af867c66ff9cc5e3f1ea94b6e596a5c297795790641228e"
+      },
+      "d3a-codex-01": {
+        "events.jsonl": "d9e6f869d3dcc2e7abf0be67ff717f0443bffbad8cae9680df9a7b537706b94c",
+        "grade-frozen.json": "f5971c80909931b839b6e61231892402a952ea226afdbbd264f54adcbf9e2732",
+        "independent-checks.json": "c762bc2b996fa35f4526870b5f6026912836a22fca3bd528ce4a7f3d2a065352"
+      },
+      "d3b-codex-01": {
+        "events.jsonl": "e327407e8805ae6a83c32d9558152e6d1f7712624a847640efdbb30fceef7cfd",
+        "grade-frozen.json": "85a3a49a33bbe5c96d1be29f19668c77dbb6d8a382619dc07c71bf394bbdd5fa",
+        "independent-checks.json": "a118babc75ba7fd8bddc0f75abdf57749f6896a8b3e42602f915e665633f8992"
+      },
+      "d4-codex-01": {
+        "events.jsonl": "3ac5e8273232dc63901d3db96b9837fcda4e453172174058360c216591bed30a",
+        "grade-frozen.json": "be743fc63efc824e05ec93ba0d8e3afdef63b872cfe76736d07f83b45cf701f1",
+        "independent-checks.json": "74397ad715095bb9d4aae32820139b144eec197d0283e927c62f5ed48679f9be"
+      },
+      "d5-codex-01": {
+        "events.jsonl": "4ce43757545ee51fa2e832cda9693259e120cfedf74287ee43531751d82372e5",
+        "grade-frozen.json": "c230c787481b4ccc6a66e3a39b77f387198b640f8662c487275c53c0c2eab8ce",
+        "independent-checks.json": "e279d0ea9b980d1185fe798c578cf7a2e95d5695e0fa8f1ed1ae7293edf74696"
+      },
+      "d6-codex-01": {
+        "events.jsonl": "0aca1aa0e9c080a2ad7a8f863646cb77eabebc2c875cea8eee3bded8777ab282",
+        "grade-frozen.json": "c6305b1ad21e43bd5d760ca249a3a50fc157eae753f3ce125890a6632583b68b",
+        "independent-checks.json": "c0b47b863efe694c133e0506e96de4ba81e452c97d86ad0df392cb8db1f99109"
+      },
+      "d6-app-codex-01": {
+        "events.jsonl": "8cb4236b0186db58687d6674dcbaa24199c7325be8c3d6af503fd979ef5fe0b0",
+        "grade-frozen.json": "e17182f60db7d083055797cc3b2df4ba96c3c7709f323464a90e3331cb988d2f",
+        "independent-checks.json": "040bb7db85a0e36966ab09faf209ebd042e82c208e4a26717c6623bdfda8fa86"
+      }
+    }
+  },
+  "recorded": 1791320232.669254
+}

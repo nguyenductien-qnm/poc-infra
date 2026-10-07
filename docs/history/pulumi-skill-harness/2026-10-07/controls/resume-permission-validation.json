@@ -1,0 +1,29 @@
+{
+  "actual_native_initial_resume_pass": true,
+  "thread": "01a1125b-1bf0-7411-9c9f-839f108510f5",
+  "turn_permissions": [
+    {
+      "raw_line": 8,
+      "timestamp": "2026-10-06T17:55:26.923Z",
+      "approval_policy": "never",
+      "sandbox_policy": {
+        "type": "danger-full-access"
+      }
+    },
+    {
+      "raw_line": 29,
+      "timestamp": "2026-10-06T17:56:07.958Z",
+      "approval_policy": "never",
+      "sandbox_policy": {
+        "type": "danger-full-access"
+      }
+    }
+  ],
+  "model": "gpt-6.1-sol",
+  "effort": "high",
+  "controller_sha256": "e6f65a071f91e6bef5796a17a55171ed30bfd35f35b2127b73d09f2153cfd471",
+  "excluded_attempt_preserved": "evidence/retention-codex-candidate-01 and -02",
+  "recovery_stash": "8fbcb97dd523a3f0242821f99b609aa521bc299b",
+  "replacement_start": "clean prepared candidate revision 3df334e2629d8a14582b074f9d03b41798634c1a; new native session",
+  "recorded": 1791309406.0193174
+}

@@ -1,0 +1,14 @@
+{
+  "grader": "grade_d6_codex",
+  "offline_code_verdict": "pass",
+  "overall_mandatory_gate": "pass",
+  "score": 100,
+  "dimensions": {"scope": 4, "investigation": 4, "code_identity": 4, "state_secret_delivery": 4, "verify": 4, "handoff": 4},
+  "weights": {"scope": 15, "investigation": 15, "code_identity": 25, "state_secret_delivery": 20, "verify": 15, "handoff": 10},
+  "findings": [],
+  "positive": "Correct synthetic14 versus declared7 diagnosis, permission/identity/manifest/preservation/plan/approval steps and retention rollback limits. Exactly four permitted changed paths; Go executable bytes unchanged. NAT/N-1 proposals bounded with owners/missing inputs. Actual current checks and reviewer source/final claims supported. Fresh handoff records contracts/results/skips/limits and next actions.",
+  "evidence": ["post-ticket/docs/OPERATIONS.md:14", "post-ticket/docs/OPERATIONS.md:59", "post-ticket/docs/HANDOFF.md:25", "events.jsonl:38", "events.jsonl:44-48", "events.jsonl:54", "events.jsonl:72", "events.jsonl:74", "events.jsonl:76", "reviewer-traces.json component212/219/227 delivery105-137"],
+  "qualification": "Original README heuristic failure was evaluator defect; preserved prefix, allowed additive navigation and equal attempt001/002 source maps confirmed. No actor recovery. Inherited D5 fixture normalization and release/executed hashes remain separately recorded.",
+  "insights": {"skill": "No demonstrated D6 gap warrants instruction change; optional reviewers should not become compulsory", "actor": "No material execution defect", "harness": "Preserve semantic grading, representation qualification and originals"},
+  "limits": "Offline docs/comment/handoff only; no AWS reachability, physical state, migration or live reconciliation proof. Hook/static checks are not cloud/Go/review proof."
+}

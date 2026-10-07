@@ -1,0 +1,32 @@
+{
+  "scope": "offline exploratory within-harness comparison; not a clean no-skill control",
+  "models": {
+    "claude": "claude-opus-5.5 via opus, high",
+    "codex": "gpt-6.1-sol, high"
+  },
+  "permissions": "identical setup-v3 authorized broad local tool access; not technical filesystem/cloud isolation",
+  "order": [
+    [
+      "claude-unchanged",
+      "codex-candidate"
+    ],
+    [
+      "claude-candidate",
+      "codex-unchanged"
+    ]
+  ],
+  "n_per_arm": 1,
+  "followup_checkpoint": "first declared-ready handoff, before final scoring; same 30day requirement; accept justified existing coverage",
+  "primary_measure": "latest final-file check results agree with final claims after followup",
+  "promotion_rule": "no automatic promotion; both succeed -> defer; candidate improves -> independent retest; regression -> revise/drop",
+  "qa": "qa_retention_lab pass",
+  "analyst": "review_daily_lab proceed/retest, defer promotion",
+  "wall_ceiling_seconds_per_initial_run": 1200,
+  "wall_ceiling_seconds_per_followup": 600,
+  "initial_acceptance": "retention",
+  "followup_acceptance": "retention-followup",
+  "capture": "all arms use new collector plaintext child traces and exact native hook context; encryptedblocks omitted",
+  "prepared_manifest": "retention-experiment.json",
+  "followup_manifest": "retention-followup-validation.json",
+  "created": 1791308055.5575767
+}
