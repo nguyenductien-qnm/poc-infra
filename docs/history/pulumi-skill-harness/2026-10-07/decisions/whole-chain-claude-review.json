@@ -1,0 +1,65 @@
+{
+  "grader": "whole_chain_claude",
+  "verdict": "Ready for supervised daily offline Pulumi Go work, with completion-reliability caveat",
+  "positive": "Own source/session/checkpoint continuity; preserved config, identity, aliases, runtime and ownership; consequential reviews produce corrections; bounded D4 delivery/D5 egress/D6 drift and fresh app scope.",
+  "findings": [
+    "Original D3b1200sec timeout/failing native alias test/incomplete review and handoff remains original failure; separate600sec recovery is qualified",
+    "Some reviewer source/independent SDK coverage partial",
+    "D6 HANDOFF31 sequential relative working directories wrong"
+  ],
+  "attribution": "Actor efficiency/assertion/reviewer/doc quality; D5 conflicting subnet input belongs to evaluator; no demonstrated missing general skill rule",
+  "recommendation": "Keep baseline; stop speculative skill changes; later separate live evidence",
+  "model": "gpt-6-astra",
+  "effort": "high",
+  "phase": "fresh blind own-chain review; prior/opposite grades excluded",
+  "format": "Parent transcription of unchanged independent final; full final retained in chat",
+  "evidence": {
+    "d1-claude-02": {
+      "events.jsonl": "ab948d8f8e2bbca652ac0b44d226c216f47475c37ff9f31187472c76f17b5518",
+      "grade-frozen.json": "03de794f580e46207f8ec5b916f5eba19f9e2d499ecca94fe3e883bb327bdba6",
+      "independent-checks.json": "975b255be798b4a061203860a4144faf21fde07808aa2c1a52314501caab8de8"
+    },
+    "d2-claude-01": {
+      "events.jsonl": "9542c876e71051d3b8dfe2daab52a4fa689effdcdd5d3a9649edd1e02aa07ed5",
+      "grade-frozen.json": "57d20dc529a31f3b7dcd70fdf80506c18d8329032c53f3747f2dc759c06be7b8",
+      "independent-checks.json": "d1398beb93801fa77265f3f19c653da59687187dd7b8f87809525c6e49b28672"
+    },
+    "d3a-claude-01": {
+      "events.jsonl": "afe33639c60598f1a6d1c55b67416db1adb7ae5a53e1a03f57d71b6b811aa3da",
+      "grade-frozen.json": "1590c3bd547a9a7fbda55acc6078853a51ff8fc83686aa05741db709e5d2e784",
+      "independent-checks.json": "f5d8851dca6d01680646b33d1cd5bd235c09b945a76b224b0402823c4d0e99fa"
+    },
+    "d3b-claude-01": {
+      "events.jsonl": "e22451ec2b7575664cff966c5b9ef9c035cbf7c73205facec9a9d58c964b95e1",
+      "grade-frozen.json": "4bfbcf42d8abaddb096490b8a2c7ea9c1271ecde5aa332df354284d07dfcbd8c",
+      "independent-checks.json": "39012107fe0bff9b3a11d0a9e14e1548675459074b83ba3837f4bd1f8c354a1e"
+    },
+    "d3b-claude-recovery-01": {
+      "events.jsonl": "5cb4fb5ab2126ac1958511efd901954b338c740d1c7f2f29c97fcf2458de5f4a",
+      "grade-frozen.json": "103c2ff412325bbd45ff3333cd262ecf79b45bf5a2d4d624b0456fd52af693ce",
+      "independent-checks.json": "6159e7ce75b42bdde19ede06929a7020de0c60c2c51bfdf75b5aacd1cbbcccea"
+    },
+    "d4-claude-01": {
+      "events.jsonl": "7fe4e064a655093450935304760c9b8d5d0027d5f4d79c1b96847232b9ebdf42",
+      "grade-frozen.json": "c5e6ca84963ad4488cc6e51b84dd45d018c1bf444a90d6bd28e02af5e831cc94",
+      "independent-checks.json": "194b27183202e6e4852b5dca56793574c2ee206ae3e1e6d0aceb499515a9e27a"
+    },
+    "d5-claude-01": {
+      "events.jsonl": "ae5782a08a76ba5f14e56e09aeccded73ec026fede8b0f54cfb39ca055027179",
+      "grade-frozen.json": "f56e97115d7898d51cdf5334b1295f2da47778272c0b683b6e4ce6fcf9674f72",
+      "independent-checks.json": "d93ec4e259d2d250970769b021ed434d7b2afbeb0c4bef26ae1f127161087ebb"
+    },
+    "d6-claude-01": {
+      "events.jsonl": "10d271247e02805b4646ab41f8a75d9aa4d0689f0c00ad0e31a7df0248e4c608",
+      "grade-frozen.json": "c21aa9527fedc9dc9352f7983e83bc0a6b89175bc8e2ba883eb19ad8538f1a34",
+      "independent-checks.json": "28f6356c6a24639f865ae056f5e19584ce1c18b190350ba132484cf81788ae0c"
+    },
+    "d6-app-claude-01": {
+      "events.jsonl": "357fbfc5e8feac397725b53be57b80816d6a9ed86b773759187ab28f87699f1c",
+      "grade-frozen.json": "6021990b7e46e20aa32650b86f0ce09f32830a65096402bc04533dd07219398a",
+      "independent-checks.json": "fccb11a2416468edba238ec739e21eeeab1be99c951430453dd57ae380c7b87f"
+    }
+  },
+  "recorded": 1791320232.6541035,
+  "limits": "No live readiness, causal no-skill attribution, broad fresh-session competence or model ranking"
+}

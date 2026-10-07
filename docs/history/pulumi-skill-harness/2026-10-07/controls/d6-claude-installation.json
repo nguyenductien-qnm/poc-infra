@@ -1,0 +1,19 @@
+{
+  "runtime": "claude",
+  "predecessor": "d5-claude-01",
+  "before": "1f16cce9f7aa11c49985e7983e99d7388f6ba831",
+  "fixture_commit": "92e20f6fe3abc114f49a9d1e779f8383f0eb5dfe",
+  "files": {
+    "docs/synthetic-drift-d6.json": "0b44a1c5b941ab8585297200bd363989547f247a4e9db9bc20d2e6d2b18d4ff5",
+    "docs/review-d6.md": "7243db2a4451e1c0d4c5de094ac251082a63d866226bb0377ad6ee7ac53facb3",
+    "app/worker.js": "64d89cc74ba2c219add2192600e089d97de14c5d67873081b40e2e47b192aa88"
+  },
+  "prompts": {
+    "d6-claude-prompt.txt": "6ea0c8e3985ca8b3fb436e8716b456d3b6c290c07f6e9f5b5934a3d2e2992efe",
+    "d6-codex-prompt.txt": "9501e94b74c782743d91c0d58bac485b1f6e1f0a7aaf55eb1f1945ce2c644684",
+    "d6-app-claude-prompt.txt": "5249a356e6d291a902df7eb4194fda6e3e2bdbd8897b6b4c93a4755544e7c367",
+    "d6-app-codex-prompt.txt": "5249a356e6d291a902df7eb4194fda6e3e2bdbd8897b6b4c93a4755544e7c367"
+  },
+  "scope": "Parent identical public ticket fixture intervention only; no implementation repair or actor coaching",
+  "recorded": 1791319033.4014807
+}

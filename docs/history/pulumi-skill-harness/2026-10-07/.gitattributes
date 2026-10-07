@@ -1,0 +1,3 @@
+controls/** -text whitespace=cr-at-eol
+decisions/** -text whitespace=cr-at-eol
+runs/** -text

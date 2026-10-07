@@ -7,6 +7,15 @@
 - Split projects or stacks only for real ownership, lifecycle, permission or blast-radius boundaries.
 - Config flags and outputs need an actual consumer.
 
+## Go Inputs, Outputs and components
+
+- Pass Outputs directly to compatible Input fields. Pulumi carries dependencies, unknown values and secrets through them; add `DependsOn` only for a real dependency not expressed by inputs.
+- Use `ApplyT` for value transformations, not ordinary resource creation: callbacks on unknown outputs may not run during preview, hiding resources from the plan. Keep resource registration outside callbacks with Output-valued inputs. Do not assign callback results to outer plain Go variables and consume them immediately; return an Output instead.
+- `ApplyT` is valid when a transformation is needed. Preserve secret Outputs through the transformation; do not log, unwrap or declassify them to obtain strings. Return transformation errors through the callback's error result.
+- A component constructor accepts caller `opts ...pulumi.ResourceOption`, passes them to the project's supported component registration API, parents children to the component and exposes the consumed outputs. Register those outputs with `ctx.RegisterResourceOutputs` before returning and propagate errors from each registration. This records component outputs and signals completion; a Go struct field alone does not do that. Missing registration does not by itself break in-program consumers of assigned Go Output fields. Base finding severity on the affected contract.
+- Trace provider inheritance through the parent and provider map; do not require redundant explicit providers on every child. Use explicit provider options where the child's intended provider differs, checking the pinned SDK API.
+- Distinguish a Go identifier rename from a Pulumi logical-name/type/parent change. The former alone does not change resource identity; the latter needs alias/migration analysis. Physical-name or provider changes can also cause replacement. Source review predicts risk; only an authorized preview supplies an observed plan.
+
 ## Workload wiring
 
 Check that IaC settings match the workload's declared contract:

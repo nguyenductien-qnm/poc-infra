@@ -1,0 +1,124 @@
+{
+  "track": "offline",
+  "change": "setup only; canonical skill unchanged",
+  "repositories": {
+    "claude": {
+      "repo": "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\d1-repaired-claude",
+      "initial_commit": "a40c4bd98abfa031e5893577e3b5eec0044f0b3d",
+      "baseline_checks": [
+        {
+          "command": [
+            "gofmt",
+            "-l",
+            "."
+          ],
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "go",
+            "mod",
+            "tidy",
+            "-diff"
+          ],
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "go",
+            "vet",
+            "./..."
+          ],
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "go",
+            "build",
+            "./..."
+          ],
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "go",
+            "test",
+            "-count=1",
+            "./..."
+          ],
+          "exit_code": 0,
+          "stdout": "?   \txbrain.local/daily/cmd/workspace\t[no test files]\n?   \txbrain.local/daily/internal/storage\t[no test files]\n?   \txbrain.local/daily/internal/testutil\t[no test files]\n?   \txbrain.local/daily/internal/workload\t[no test files]\nok  \txbrain.local/daily/internal/workspace\t0.104s\n",
+          "stderr": ""
+        }
+      ],
+      "hook_definition_sha256": "60262905421d2907f9fa10677244bbc21f6118641bd656e0c4df27c4d66c8559"
+    },
+    "codex": {
+      "repo": "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\d1-repaired-codex",
+      "initial_commit": "543892a4d60d415a904cf4c17eac8fb8c939e051",
+      "baseline_checks": [
+        {
+          "command": [
+            "gofmt",
+            "-l",
+            "."
+          ],
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "go",
+            "mod",
+            "tidy",
+            "-diff"
+          ],
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "go",
+            "vet",
+            "./..."
+          ],
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "go",
+            "build",
+            "./..."
+          ],
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "command": [
+            "go",
+            "test",
+            "-count=1",
+            "./..."
+          ],
+          "exit_code": 0,
+          "stdout": "?   \txbrain.local/daily/cmd/workspace\t[no test files]\n?   \txbrain.local/daily/internal/storage\t[no test files]\n?   \txbrain.local/daily/internal/testutil\t[no test files]\n?   \txbrain.local/daily/internal/workload\t[no test files]\nok  \txbrain.local/daily/internal/workspace\t0.108s\n",
+          "stderr": ""
+        }
+      ],
+      "hook_definition_sha256": "6b5b30ec94413ec8ba644cb171c742cf0463d4391970fab38af820f66394fa5b"
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "track": "offline",
+  "cloud": "not contacted",
+  "controls": {
+    "seed": {
+      "command": [
+        "go",
+        "test",
+        "./..."
+      ],
+      "exit_code": 1,
+      "stdout": "?   \txbrain.local/daily/cmd/workspace\t[no test files]\n?   \txbrain.local/daily/internal/storage\t[no test files]\n?   \txbrain.local/daily/internal/testutil\t[no test files]\n?   \txbrain.local/daily/internal/workload\t[no test files]\n--- FAIL: TestHarnessD1Config (0.00s)\n    --- FAIL: TestHarnessD1Config/uat (0.00s)\n        harness_acceptance_test.go:29: storage prefix: got \"xbrain-nonprod-uploads-\", want \"xbrain-uat-uploads-\"\nFAIL\nFAIL\txbrain.local/daily/internal/workspace\t0.109s\nFAIL\n",
+      "stderr": ""
+    },
+    "correction": {
+      "command": [
+        "go",
+        "test",
+        "./..."
+      ],
+      "exit_code": 0,
+      "stdout": "?   \txbrain.local/daily/cmd/workspace\t[no test files]\n?   \txbrain.local/daily/internal/storage\t[no test files]\n?   \txbrain.local/daily/internal/testutil\t[no test files]\n?   \txbrain.local/daily/internal/workload\t[no test files]\nok  \txbrain.local/daily/internal/workspace\t0.124s\n",
+      "stderr": ""
+    }
+  },
+  "fixture_commit": "8a49da6b53268a63c0c6f082024f730a8ff7dfae",
+  "pack_commit": "4db9185337dd9cc0cb8f206744c0d4ca5aa4a0b4",
+  "repositories": {
+    "claude": {
+      "path": "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\xbrain-pulumi-daily-claude",
+      "initial_commit": "4776e5eba0102c8d06091ddc4c2dd8cf8c52a72b",
+      "installation": {
+        "command": [
+          "python",
+          "-B",
+          ".agents/skills/pulumi/scripts/verify.py",
+          "--repo-root",
+          "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\xbrain-pulumi-daily-claude",
+          "--runtime",
+          "claude"
+        ],
+        "exit_code": 0,
+        "stdout": "Pulumi pack local static checks passed (no cloud operations).\n",
+        "stderr": ""
+      }
+    },
+    "codex": {
+      "path": "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\xbrain-pulumi-daily-codex",
+      "initial_commit": "d9536f9b9f468f1744aef73ebce876e9adfbd70d",
+      "installation": {
+        "command": [
+          "python",
+          "-B",
+          ".agents/skills/pulumi/scripts/verify.py",
+          "--repo-root",
+          "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\xbrain-pulumi-daily-codex",
+          "--runtime",
+          "codex"
+        ],
+        "exit_code": 0,
+        "stdout": "Pulumi pack local static checks passed (no cloud operations).\n",
+        "stderr": ""
+      }
+    }
+  }
+}

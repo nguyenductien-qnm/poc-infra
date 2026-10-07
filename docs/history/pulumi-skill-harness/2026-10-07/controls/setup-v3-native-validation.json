@@ -1,0 +1,171 @@
+{
+  "track": "offline",
+  "skill": "unchanged",
+  "permission_condition": "authorized broad local permissions; not filesystem or cloud isolation",
+  "runs": {
+    "claude": {
+      "evidence": "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\evidence\\setup-v3-claude-01",
+      "repo": "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\d1-repaired-claude",
+      "git_status": "clean",
+      "native_metadata": {
+        "requested_model": "opus",
+        "effort": "high",
+        "terminal": true,
+        "response_models": [
+          "claude-opus-5.5"
+        ],
+        "hooks": [
+          {
+            "event": "SessionStart",
+            "exit_code": 0,
+            "outcome": "success"
+          },
+          {
+            "event": "PostToolUse",
+            "exit_code": 0,
+            "outcome": "success"
+          },
+          {
+            "event": "PostToolUse",
+            "exit_code": 0,
+            "outcome": "success"
+          }
+        ],
+        "result_stats": [
+          {
+            "subagent_stats": {
+              "spawned": 1,
+              "requested": {
+                "background": 0,
+                "foreground": 1,
+                "unset": 0
+              },
+              "started_in_background": 0,
+              "max_depth": 1,
+              "spawned_by_subagents": 0,
+              "completed": 1,
+              "failed": 0,
+              "killed": {
+                "parent": 0,
+                "user": 0,
+                "system": 0
+              },
+              "refused": {
+                "depth_limit": 0,
+                "concurrency_limit": 0,
+                "budget": 0
+              },
+              "by_type": {
+                "pulumi-component-reviewer": 1
+              }
+            },
+            "is_error": false,
+            "terminal_reason": "completed",
+            "permission_denials": [],
+            "cost_estimate": 0.46364500000000003,
+            "cost_basis": {
+              "opus[1m]": {
+                "inputTokens": 88299,
+                "outputTokens": 886,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0,
+                "webSearchRequests": 0,
+                "costUSD": 0.46364500000000003,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 32000,
+                "thinkingTokens": 0,
+                "canonicalModel": "opus[1m]",
+                "provider": "firstParty",
+                "costBasis": "unknown"
+              }
+            }
+          }
+        ]
+      },
+      "baseline_commit": "a40c4bd98abfa031e5893577e3b5eec0044f0b3d"
+    },
+    "codex": {
+      "evidence": "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\evidence\\setup-v3-codex-02",
+      "repo": "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\d1-repaired-codex",
+      "git_status": "clean",
+      "native_metadata": {
+        "requested_model": "gpt-6.1-sol",
+        "effort": "high",
+        "terminal": true,
+        "thread_id": "01a11234-277b-7080-927c-e3f4684ee65a",
+        "hooks": "native runtime delivered hook context in persisted developer messages; exec JSON does not expose individual hook exit codes",
+        "sessions": [
+          {
+            "id": "01a11234-277b-7080-927c-e3f4684ee65a",
+            "source": "exec",
+            "turn_models": [
+              {
+                "model": "gpt-6.1-sol",
+                "effort": "high"
+              }
+            ]
+          },
+          {
+            "id": "01a11235-4e9f-7b61-a140-aebffce5d182",
+            "source": {
+              "subagent": {
+                "thread_spawn": {
+                  "parent_thread_id": "01a11234-277b-7080-927c-e3f4684ee65a",
+                  "depth": 1,
+                  "agent_path": "/root/comment_probe_review",
+                  "agent_nickname": "Kepler",
+                  "agent_role": "pulumi-component-reviewer"
+                }
+              }
+            },
+            "turn_models": [
+              {
+                "model": "gpt-6.1-sol",
+                "effort": "high"
+              }
+            ]
+          }
+        ],
+        "persisted_hook_events": [],
+        "runtime_hook_context": [
+          {
+            "session": "01a11234-277b-7080-927c-e3f4684ee65a",
+            "source": "C:\\Users\\T14s Gen 2\\.codex\\sessions\\2026\\10\\07\\rollout-2026-10-07T00-12-51-01a11234-277b-7080-927c-e3f4684ee65a.jsonl",
+            "raw_line": 9,
+            "runtime_role": "developer",
+            "context": "Pulumi pack static checks passed (no Go, cloud or review)."
+          },
+          {
+            "session": "01a11234-277b-7080-927c-e3f4684ee65a",
+            "source": "C:\\Users\\T14s Gen 2\\.codex\\sessions\\2026\\10\\07\\rollout-2026-10-07T00-12-51-01a11234-277b-7080-927c-e3f4684ee65a.jsonl",
+            "raw_line": 55,
+            "runtime_role": "developer",
+            "context": "Pulumi infra files changed; earlier checks/review are stale. Run verify before reporting results."
+          },
+          {
+            "session": "01a11234-277b-7080-927c-e3f4684ee65a",
+            "source": "C:\\Users\\T14s Gen 2\\.codex\\sessions\\2026\\10\\07\\rollout-2026-10-07T00-12-51-01a11234-277b-7080-927c-e3f4684ee65a.jsonl",
+            "raw_line": 99,
+            "runtime_role": "developer",
+            "context": "Pulumi infra files changed; earlier checks/review are stale. Run verify before reporting results."
+          },
+          {
+            "session": "01a11235-4e9f-7b61-a140-aebffce5d182",
+            "source": "C:\\Users\\T14s Gen 2\\.codex\\sessions\\2026\\10\\07\\rollout-2026-10-07T00-14-05-01a11235-4e9f-7b61-a140-aebffce5d182.jsonl",
+            "raw_line": 8,
+            "runtime_role": "developer",
+            "context": "Pulumi pack static checks passed (no Go, cloud or review)."
+          },
+          {
+            "session": "01a11235-4e9f-7b61-a140-aebffce5d182",
+            "source": "C:\\Users\\T14s Gen 2\\.codex\\sessions\\2026\\10\\07\\rollout-2026-10-07T00-14-05-01a11235-4e9f-7b61-a140-aebffce5d182.jsonl",
+            "raw_line": 10,
+            "runtime_role": "developer",
+            "context": "Pulumi infra files changed; earlier checks/review are stale. Run verify before reporting results."
+          }
+        ]
+      },
+      "baseline_commit": "543892a4d60d415a904cf4c17eac8fb8c939e051"
+    }
+  }
+}

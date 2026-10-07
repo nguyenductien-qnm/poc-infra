@@ -1,0 +1,9 @@
+{
+  "user_authorization": "Allow hooks and all necessary local tools; no manual blockers",
+  "normal_control": "Codex 0.160.0 TUI review hooks -> trust all",
+  "observed": "PostToolUse installed=1 active=1; SessionStart installed=1 active=1",
+  "session": "01a1122e-2608-7332-b014-c49a8ec091d9",
+  "terminal_exit_code": 0,
+  "coverage": "trust state only; execution must be observed separately",
+  "cli_upgrade": "skipped to keep experimental version fixed"
+}

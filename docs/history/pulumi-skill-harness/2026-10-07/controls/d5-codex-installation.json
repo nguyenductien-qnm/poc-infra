@@ -1,0 +1,19 @@
+{
+  "runtime": "codex",
+  "predecessor": "d4-codex-01",
+  "repo": "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\d1-repaired-codex",
+  "before": "2c519493b5830b1eca39716268ed6da77e96d4c0",
+  "fixture_commit": "db8de12caeb3ae7eaa2590882f8361769d61dd55",
+  "inserted": {
+    "docs/D5-NETWORK-CONTRACT.md": "102dc9db7e113640669829ed12cbe856dfe86aa5627a098945b15e26fc896b4d",
+    "infra/cmd/workspace/examples/Pulumi.uat.yaml": "1f62a9caa3075e2bc8bed6efb566eee671d5b1fc5462fba64c9f444845b622fe"
+  },
+  "example_relative": "infra/cmd/workspace/examples/Pulumi.uat.yaml",
+  "example_original_sha256": "5319cdfb3946bbff986deb15aed3c39e6f0b65781a968f6f12becacfabc16562",
+  "release_input_sha256": {
+    "docs/D5-NETWORK-CONTRACT.md": "102dc9db7e113640669829ed12cbe856dfe86aa5627a098945b15e26fc896b4d",
+    "infra/cmd/workspace/Pulumi.uat.example.yaml": "3e2671af88fbcc11f060cd6f5cf9586bd9647a47eca3edcf0b02a1b50bb26acb"
+  },
+  "scope": "Public contract plus one approved outbound config key; predecessor example lines and all other source bytes preserved. No actor repair or opposite source copied.",
+  "recorded": 1791317713.5604324
+}

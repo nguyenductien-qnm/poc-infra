@@ -1,0 +1,29 @@
+{
+  "preparation_sha256": "7fd7c9fac04fb2e929e222291ae7692a5620572c2cd075554dde689e49846063",
+  "qa": "qa_semantic_preparation pass; final original in chat",
+  "stop_rule": {
+    "initial": "one matched diagnostic, n=1 for each runtime/arm",
+    "unchanged_success": "stop without edit",
+    "candidate_improvement": "at most one independent confirmation",
+    "otherwise": "drop; do not tune cases"
+  },
+  "models": {
+    "claude": "claude-opus-5.5/high primary-model gate",
+    "codex": "gpt-6.1-sol/high"
+  },
+  "permissions": {
+    "claude": "bypassPermissions/project settings/empty MCP",
+    "codex": "approval never/danger-full-access/invocation-only vetted-hook-source override for both arms"
+  },
+  "hook_vetting": "hooks and verifier hashes pinned in runner to previously reviewed canonical pack; no global trust edits; actual execution evidence separate",
+  "order": [
+    "claude-a",
+    "codex-b",
+    "claude-b",
+    "codex-a"
+  ],
+  "ceilings": "1200 seconds each; no coaching or repeated tuning; preserve failures",
+  "scope": "docs review only; own-repo scratch authorized; no cloud/native child CLI/commit/push",
+  "limits": "new repos have no stashes but local filesystem/auth/config shared; not isolated/no-skill/causal",
+  "recorded": 1791313366.7685697
+}

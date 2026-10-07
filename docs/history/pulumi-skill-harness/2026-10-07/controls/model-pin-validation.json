@@ -1,0 +1,26 @@
+{
+  "bounded_initial_resume_pass": true,
+  "records": [
+    {
+      "run": "model-pin-initial-02",
+      "response_models": [
+        "claude-opus-5.5"
+      ],
+      "requested": "claude-opus-5.5",
+      "effort": "high",
+      "permission": "bypassPermissions"
+    },
+    {
+      "run": "model-pin-resume-01",
+      "response_models": [
+        "claude-opus-5.5"
+      ],
+      "requested": "claude-opus-5.5",
+      "effort": "high",
+      "permission": "bypassPermissions"
+    }
+  ],
+  "future_gate": "Stop owned run on first unexpected primary assistant model; do not substitute.",
+  "limit": "Observed native response metadata only; two neutral probes do not guarantee future routing.",
+  "recorded": 1791309894.4020586
+}

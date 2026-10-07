@@ -1,0 +1,17 @@
+{
+  "grader": "grade_d6_claude",
+  "offline_code_verdict": "pass with minor handoff/verification issues",
+  "overall_mandatory_gate": "pass",
+  "score": 93.75,
+  "dimensions": {"scope": 4, "investigation": 4, "code_identity": 4, "state_secret_delivery": 4, "verify": 3, "handoff": 3},
+  "weights": {"scope": 15, "investigation": 15, "code_identity": 25, "state_secret_delivery": 20, "verify": 15, "handoff": 10},
+  "findings": [
+    {"dimension": "handoff", "severity": "nonblocking", "detail": "HANDOFF lines30-34 command block is not sequentially runnable: after cd infra, offline-controls relative path and delivery test working directory are incorrect; offline variables only commented."},
+    {"dimension": "handoff", "severity": "nonblocking", "detail": "Durable handoff lists commands without D6 outcomes/skips; native final records truthful evidence unavailable to fresh receiver."},
+    {"dimension": "verify", "severity": "nonblocking", "detail": "Native D6 skips secret-control tidy-diff/build without listing skips; evaluator subsequently passes these, not native proof."}
+  ],
+  "positive": "Approved docs and two Go comments only; tokens/directives unchanged. Synthetic14 versus declared7 diagnosis and authorized proposed reconciliation are sound, including retention loss/rollback limits. NAT/N-1 remain pending with owners/inputs. No forbidden commands observed.",
+  "evidence": ["post-ticket/docs/OPERATIONS.md:7", "post-ticket/docs/HANDOFF.md:30", "post-ticket/docs/HANDOFF.md:36", "events.jsonl:372", "events.jsonl:377", "events.jsonl:447", "events.jsonl:2"],
+  "insights": {"actor": "Runnable working directories and durable results/skips table", "skill": "Consider durable handoff evidence when recipient lacks conversation history; verify currently principally specifies final report", "harness": "Semantic grading necessary despite sixteen passing checks; fixture qualification retained"},
+  "limits": "Offline preservation/correctness only; no live reconciliation/AWS proof. No reviewer requirement for docs/comments or context-loss inference from omitted rereads. Static hook success is only static-pack proof."
+}

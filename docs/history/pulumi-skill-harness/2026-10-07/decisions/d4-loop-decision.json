@@ -1,0 +1,23 @@
+{
+  "analyst": "analyze_d4_loop",
+  "model": "gpt-6-astra",
+  "effort": "high",
+  "decision": "keep canonical unchanged; continue D5-D6",
+  "format": "parent structured summary of unchanged independent analyst final; full final in chat",
+  "material_pack_gap": false,
+  "attribution": {
+    "actor": "D3b original regression rejected legitimate SDK aliases; recovery fixed the assertion, not production identity declarations.",
+    "existing_guidance": "Tracing identity, bounding claims, investigating pinned SDK and supplying actual reviewer source/diff are already required.",
+    "harness_evidence": "Absent current-window reads and reviewer corroboration leave context unknown; they do not establish an adapter defect. Original timeout remains a completion failure.",
+    "D4": "Both bounded offline contracts pass twelve independent checks. Known-secret control preserved. Native PowerShell/stub tests distinguish the target-selection defect."
+  },
+  "closed_candidates": ["retention verification-output paragraph", "semantic-report sentence"],
+  "next": "No new discriminating experiment justified from D1-D4. Complete frozen D5-D6 and fresh whole-chain assessment.",
+  "references": [
+    "evidence/d3b-claude-01/grade-frozen.json",
+    "evidence/d3b-claude-recovery-01/grade-frozen.json",
+    "evidence/d4-codex-01/grade-frozen.json",
+    "evidence/d4-claude-01/grade-frozen.json"
+  ],
+  "limits": "Offline evidence does not establish live deployment correctness, isolation or causal skill benefit. No coder coaching or future-ticket inspection."
+}

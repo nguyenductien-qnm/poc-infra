@@ -1,0 +1,25 @@
+{
+  "runtime": "claude",
+  "predecessor": "d3b-claude-recovery-01",
+  "repo": "C:\\Users\\T14s Gen 2\\Desktop\\workspace\\pulumi-harness-lab\\d1-repaired-claude",
+  "before": "aeef14ae3fa82f15aa5d8b0a4bcbe2e4ebe45441",
+  "fixture_commit": "23a3358dec1efcc80c5415a0089fcb4058fad2f4",
+  "inserted": {
+    "docs/D4-DELIVERY.md": "174416a8acde774ac549a8cebd4fcc985a70b457854eadc5fb2df5429b3325fd",
+    "fixtures/d4-preview.synthetic.log": "2ab2edca782b66d421181a490b84e204f570b466a4ac8df74cfc380959b2f55b",
+    "scripts/delivery/preview.ps1": "d9b8fe50a6eb71bb1fcca243cd7969a4c58d0c30da70da50a4cf5ce457fc0b14",
+    "scripts/delivery/stub-pulumi.ps1": "826824abd284d19098d3184488f47d1edf2cbdb4f88f1dda4b3ae4f8d375aa62",
+    "offline-controls/secret-transform/encode.go": "4cfe4ff65cddf6692736469c8a05c9ba86828ad8d74082bc6ea4c703d0d14fb7",
+    "offline-controls/secret-transform/encode_test.go": "fa2835e97d290fd4a240daecfff7b66194c9eb3b882e00470cf74c8895b0c1c0",
+    "offline-controls/secret-transform/go.mod": "310f2c429526414cf7a8e4b530111c0afbeffa4a4697a5c2130225d2b00e4c08",
+    "offline-controls/secret-transform/go.sum": "856b0699c1cbcbe547834d97fedf0937cc0d3fbf9712e6182cc7efca4612a278",
+    ".github/workflows/d4-preview.yml": "a5b62271bceb43f6a235eca6651a28b78fd0d4c2e6ccd2f4bcbe7eb4eafe1255"
+  },
+  "existing_delivery_and_attributes_sha256": {
+    ".gitattributes": "32957ff2732c2d063d621b700f1847dbeb2701153e43da408b4120c5734314ec",
+    "docs/CONTRACTS.md": "6f025b7a44507bd1d3b97b3970ac3b54c4a196a488863120613e75e5c0165e7e",
+    "docs/DECISIONS.md": "f042d51eb93176664e685decd322a3572c9d6aca73716104935290a4883118cd"
+  },
+  "scope": "Identical new public fixture only; all existing source/delivery/docs/attributes byte-preserved; no actor repair. Added preview fixture does not establish live deployment approval enforcement.",
+  "recorded": 1791315434.324138
+}
